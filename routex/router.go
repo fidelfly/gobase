@@ -1,24 +1,89 @@
-package router
+package routex
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
+type RouteConfig struct {
+	restricted bool
+	audit      bool
+}
+
+func NewConfig() RouteConfig {
+	return RouteConfig{audit: true}
+}
+
+func (rc RouteConfig) GetCopy() RouteConfig {
+	return RouteConfig{
+		restricted: rc.restricted,
+		audit:      rc.audit,
+	}
+}
+func (rc RouteConfig) IsRestricted() bool {
+	return rc.restricted
+}
+
+func (rc RouteConfig) IsAuditEnable() bool {
+	return rc.audit
+}
+
 type Router struct {
-	myRouter *mux.Router
+	myRouter    *mux.Router
+	routeConfig map[*mux.Route]*RouteConfig
+	config      RouteConfig
+}
+
+func (r *Router) GetRouteConfig(route *mux.Route) *RouteConfig {
+	return r.routeConfig[route]
 }
 
 type Route struct {
-	myRoute *mux.Route
+	myRoute     *mux.Route
+	routeConfig map[*mux.Route]*RouteConfig
 }
 
+func New() *Router {
+	return &Router{myRouter: mux.NewRouter(), routeConfig: make(map[*mux.Route]*RouteConfig), config: RouteConfig{audit: true}}
+}
+
+func (r *Route) SetConfig(config RouteConfig) *Route {
+	r.Restricted(config.restricted)
+	r.Audit(config.audit)
+	return r
+}
+
+func (r *Route) getConfig() *RouteConfig {
+	return r.routeConfig[r.myRoute]
+}
+
+func (r *Route) Restricted(restricted bool) *Route {
+	if config := r.getConfig(); config != nil {
+		config.restricted = restricted
+	}
+	return r
+}
+
+func (r *Route) Audit(audit bool) *Route {
+	if config := r.getConfig(); config != nil {
+		config.audit = audit
+	}
+	return r
+}
 func (r *Router) Get(name string) *Route {
-	return &Route{r.myRouter.Get(name)}
+	return r.makeRoute(r.myRouter.Get(name))
+}
+
+func (r *Router) makeRoute(route *mux.Route) *Route {
+	newRoute := &Route{myRoute: route, routeConfig: r.routeConfig}
+	config := r.config.GetCopy()
+	r.routeConfig[route] = &config
+	return newRoute
 }
 
 func (r *Router) GetRoute(name string) *Route {
-	return &Route{r.myRouter.GetRoute(name)}
+	return r.makeRoute(r.myRouter.GetRoute(name))
 }
 
 func (r *Router) StrictSlash(value bool) *Router {
@@ -42,76 +107,89 @@ func (r *Router) UseEncodedPath() *Router {
 
 // NewRoute registers an empty route.
 func (r *Router) NewRoute() *Route {
-	return &Route{r.myRouter.NewRoute()}
+	return r.makeRoute(r.myRouter.NewRoute())
 }
 
 // Name registers a new route with a name.
 // See Route.Name().
 func (r *Router) Name(name string) *Route {
-	return &Route{r.myRouter.Name(name)}
+	return r.makeRoute(r.myRouter.Name(name))
 }
 
 // Handle registers a new route with a matcher for the URL path.
 // See Route.Path() and Route.Handler().
 func (r *Router) Handle(path string, handler http.Handler) *Route {
-	return &Route{r.myRouter.Handle(path, handler)}
+	return r.makeRoute(r.myRouter.Handle(path, handler))
 }
 
 // HandleFunc registers a new route with a matcher for the URL path.
 // See Route.Path() and Route.HandlerFunc().
 func (r *Router) HandleFunc(path string, f func(http.ResponseWriter, *http.Request)) *Route {
-	return &Route{r.myRouter.HandleFunc(path, f)}
+	return r.makeRoute(r.myRouter.HandleFunc(path, f))
 }
 
 // Headers registers a new route with a matcher for request header values.
 // See Route.Headers().
 func (r *Router) Headers(pairs ...string) *Route {
-	return &Route{r.myRouter.Headers(pairs...)}
+	return r.makeRoute(r.myRouter.Headers(pairs...))
 }
 
 // Host registers a new route with a matcher for the URL host.
 // See Route.Host().
 func (r *Router) Host(tpl string) *Route {
-	return &Route{r.myRouter.Host(tpl)}
+	return r.makeRoute(r.myRouter.Host(tpl))
 }
-
 
 // Methods registers a new route with a matcher for HTTP methods.
 // See Route.Methods().
 func (r *Router) Methods(methods ...string) *Route {
-	return &Route{r.myRouter.Methods(methods...)}
+	return r.makeRoute(r.myRouter.Methods(methods...))
 }
 
 // Path registers a new route with a matcher for the URL path.
 // See Route.Path().
 func (r *Router) Path(tpl string) *Route {
-	return &Route{r.myRouter.Path(tpl)}
+	return r.makeRoute(r.myRouter.Path(tpl))
 }
 
 // PathPrefix registers a new route with a matcher for the URL path prefix.
 // See Route.PathPrefix().
 func (r *Router) PathPrefix(tpl string) *Route {
-	return &Route{r.myRouter.PathPrefix(tpl)}
+	return r.makeRoute(r.myRouter.PathPrefix(tpl))
 }
 
 // Queries registers a new route with a matcher for URL query values.
 // See Route.Queries().
 func (r *Router) Queries(pairs ...string) *Route {
-	return &Route{r.myRouter.Queries(pairs...)}
+	return r.makeRoute(r.myRouter.Queries(pairs...))
 }
 
 // Schemes registers a new route with a matcher for URL schemes.
 // See Route.Schemes().
 func (r *Router) Schemes(schemes ...string) *Route {
-	return &Route{r.myRouter.Schemes(schemes...)}
+	return r.makeRoute(r.myRouter.Schemes(schemes...))
 }
 
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.myRouter.ServeHTTP(w, req)
+}
 
+func (r *Router) Use(mwf ...func(http.Handler) http.Handler) {
+	middlewares := make([]mux.MiddlewareFunc, len(mwf))
+	for i := 0; i < len(mwf); i++ {
+		middlewares[i] = mux.MiddlewareFunc(mwf[i])
+	}
+	r.myRouter.Use(middlewares...)
+}
 
 // SkipClean reports whether path cleaning is enabled for this route via
 // Router.SkipClean.
 func (r *Route) SkipClean() bool {
 	return r.myRoute.SkipClean()
+}
+
+func (r *Route) GetConfig() *RouteConfig {
+	return r.routeConfig[r.myRoute]
 }
 
 // ----------------------------------------------------------------------------
@@ -283,4 +361,6 @@ func (r *Route) Schemes(schemes ...string) *Route {
 	return r
 }
 
-
+func (r *Route) Subrouter() *Router {
+	return &Router{myRouter: r.myRoute.Subrouter(), routeConfig: r.routeConfig, config: r.getConfig().GetCopy()}
+}
