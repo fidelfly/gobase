@@ -226,16 +226,6 @@ func GetRouter(routerKey string) *RootRouter {
 }
 
 //export
-func InitRouter(audit bool, logger logx.StdLog) {
-	if logger != nil {
-		Router().SetLogger(logger)
-	}
-	if audit {
-		Router().EnableAudit()
-	}
-}
-
-//export
 func EnableRouterAudit(loggers ...logx.StdLog) *RootRouter {
 	myRouter := Router()
 	if len(loggers) > 0 {
