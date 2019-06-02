@@ -1,2 +1,2 @@
 # fxgo
-base for fxgos
+Utilities for starting a backend service with go quickly.
