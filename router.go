@@ -2,6 +2,7 @@ package fxgo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -43,8 +44,9 @@ type RootRouter struct {
 	auditLogger logx.StdLog
 }
 
-func (rr *RootRouter) SetLogger(logger logx.StdLog) {
-	rr.auditLogger = logger
+func (rr *RootRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	defer CapturePanicAndRecover(fmt.Sprintf("Panic found and recovered during %s:%s", req.Method, req.URL.Path))
+	rr.Router.ServeHTTP(w, req)
 }
 
 func (rr *RootRouter) EnableAudit(loggers ...logx.StdLog) {

@@ -16,5 +16,6 @@ func CapturePanicAndRecover(messages ...string) {
 			logx.Panic(messages)
 		}
 		logx.Panic(err)
+		logx.Info("Panic recovered")
 	}
 }
