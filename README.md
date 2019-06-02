@@ -1,0 +1,2 @@
+# fxgo
+base for fxgos
