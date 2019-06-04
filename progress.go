@@ -5,7 +5,7 @@ import (
 
 	"github.com/fidelfly/fxgo/logx"
 
-	"github.com/fidelfly/fxgo/utilities/randx"
+	"github.com/fidelfly/fxgo/pkg/randx"
 
 	"github.com/sirupsen/logrus"
 

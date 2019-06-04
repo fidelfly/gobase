@@ -70,7 +70,6 @@ func (so ConsoleOutput) Panicf(format string, args ...interface{}) {
 //export
 func SetupLogs(config *LogConfig) {
 	configLogger(logx.StandardLogger(), config)
-	return
 }
 
 func configLogger(logger *logx.Logger, config *LogConfig) {
@@ -95,7 +94,6 @@ func configLogger(logger *logx.Logger, config *LogConfig) {
 			logger.SetOutput(rotate)
 		}
 	}
-	return
 }
 
 //export
