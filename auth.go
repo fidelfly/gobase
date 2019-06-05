@@ -7,6 +7,7 @@ import (
 )
 
 //export
+// nolint[lll]
 func SetupPasswordAuthorizeServer(client authx.ClientInfo, pwdHandler func(username, password string) (string, error), storeFile string) *authx.Server {
 	server := authx.NewOAuthServer()
 	var tokenStore oauth2.TokenStore

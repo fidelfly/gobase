@@ -172,10 +172,8 @@ func (pd *ProgressDispatcher) notify(percent int, status string, message interfa
 		if message != nil {
 			if msgText, ok := message.(string); ok {
 				msg = msgText
-			} else {
-				if msgData, err := json.Marshal(message); err == nil {
-					msg = string(msgData)
-				}
+			} else if msgData, err := json.Marshal(message); err == nil {
+				msg = string(msgData)
 			}
 		}
 		logx.Infof("Progress(%s) : percent = %d%%, status = %s, message = %s", pd.Code, percent, status, msg)
@@ -223,6 +221,7 @@ func (pd *ProgressDispatcher) NewSubProgress(proportion int) *SubProgress {
 	return sp
 }
 
+// nolint[:gocyclo,dupl]
 func (pd *ProgressDispatcher) ProgressChanged(subProgress *SubProgress) {
 	pd.mux.Lock()
 	defer pd.mux.Unlock()
@@ -428,6 +427,7 @@ func (wsp *WsProgress) delaySend(timer *time.Timer) {
 					return
 				}
 			default:
+				continue
 			}
 		}
 
@@ -452,10 +452,8 @@ func (wsp *WsProgress) Send(percent int, status string, message interface{}) {
 		if message != nil {
 			if msgText, ok := message.(string); ok {
 				msg = msgText
-			} else {
-				if msgData, err := json.Marshal(message); err == nil {
-					msg = string(msgData)
-				}
+			} else if msgData, err := json.Marshal(message); err == nil {
+				msg = string(msgData)
 			}
 		}
 		logx.Infof("Progress(%s) : percent = %d%%, status = %s, message = %s", wsp.Code, percent, status, msg)
@@ -511,6 +509,7 @@ func (wsp *WsProgress) NewSubProgress(proportion int) *SubProgress {
 	return sp
 }
 
+// nolint[:gocyclo,dupl]
 func (wsp *WsProgress) ProgressChanged(subProgress *SubProgress) {
 	wsp.mux.Lock()
 	defer wsp.mux.Unlock()

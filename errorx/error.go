@@ -49,7 +49,7 @@ func (ce *codeError) OrigErr() error {
 }
 
 //export
-func NewError(code string, message string) Error {
+func NewError(code, message string) Error {
 	return &codeError{
 		code:    code,
 		message: message,

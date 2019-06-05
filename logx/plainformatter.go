@@ -3,6 +3,7 @@ package logx
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"sync"
@@ -22,9 +23,6 @@ type PlainTextFormatter struct {
 
 	// QuoteEmptyFields will wrap empty fields in quotes if true
 	QuoteEmptyFields bool
-
-	// Whether the logger's out is to a terminal
-	isTerminal bool
 
 	sync.Once
 }
@@ -86,6 +84,7 @@ func (f *PlainTextFormatter) Format(entry *Entry) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+// nolint:gocyclo
 func (f *PlainTextFormatter) needsQuoting(text string) bool {
 	if f.QuoteEmptyFields && len(text) == 0 {
 		return true
@@ -110,15 +109,15 @@ func (f *PlainTextFormatter) appendKeyValue(b *bytes.Buffer, key string, value i
 	f.appendValue(b, value)
 }
 
-func (f *PlainTextFormatter) appendValue(b *bytes.Buffer, value interface{}) {
+func (f *PlainTextFormatter) appendValue(b io.StringWriter, value interface{}) {
 	stringVal, ok := value.(string)
 	if !ok {
 		stringVal = fmt.Sprint(value)
 	}
 
 	if !f.needsQuoting(stringVal) {
-		b.WriteString(stringVal)
+		_, _ = b.WriteString(stringVal)
 	} else {
-		b.WriteString(fmt.Sprintf("%q", stringVal))
+		_, _ = b.WriteString(fmt.Sprintf("%q", stringVal))
 	}
 }

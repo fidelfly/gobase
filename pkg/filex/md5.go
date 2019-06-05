@@ -23,7 +23,10 @@ func CalculateReaderMd5(reader io.Reader) string {
 //export
 func CalculateBytesMd5(data []byte) string {
 	mh := md5.New()
-	mh.Write(data)
+	if _, terr := mh.Write(data); terr != nil {
+		fmt.Printf("error found during calculate bytes md5 : %s", terr.Error())
+		return ""
+	}
 	return hex.EncodeToString(mh.Sum(nil))
 }
 
@@ -34,7 +37,7 @@ func CalculateFileMd5(file string) string {
 		return ""
 	}
 	defer func() {
-		if err := f.Close(); err != nil {
+		if terr := f.Close(); terr != nil {
 			fmt.Println(err)
 		}
 	}()

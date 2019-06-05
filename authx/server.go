@@ -47,16 +47,30 @@ func NewOAuthServer() *Server {
 	return &Server{m, s}
 }
 
-func (as *Server) SetTokenStorage(store oauth2.TokenStore) {
-	as.manager.MapTokenStorage(store)
+func (as *Server) SetTokenStorage(tokenStore oauth2.TokenStore) {
+	as.manager.MapTokenStorage(tokenStore)
 }
 
-func (as *Server) SetPasswordTokenCfg(accessTokenExp time.Duration, refreshTokenExp time.Duration, isGenerateRefresh bool) {
-	as.manager.SetPasswordTokenCfg(&manage.Config{AccessTokenExp: accessTokenExp, RefreshTokenExp: refreshTokenExp, IsGenerateRefresh: isGenerateRefresh})
+func (as *Server) SetPasswordTokenCfg(accessTokenExp, refreshTokenExp time.Duration, isGenerateRefresh bool) {
+	as.manager.SetPasswordTokenCfg(
+		&manage.Config{
+			AccessTokenExp:    accessTokenExp,
+			RefreshTokenExp:   refreshTokenExp,
+			IsGenerateRefresh: isGenerateRefresh,
+		})
 }
 
-func (as *Server) SetRefreshTokenCfg(accessTokenExp time.Duration, refreshTokenExp time.Duration, isGenerateRefresh bool, isRemoveAccess bool, isRemoveRefreshing bool, isResetRefreshTime bool) {
-	as.manager.SetRefreshTokenCfg(&manage.RefreshingConfig{AccessTokenExp: accessTokenExp, RefreshTokenExp: refreshTokenExp, IsGenerateRefresh: isGenerateRefresh, IsRemoveAccess: isRemoveAccess, IsRemoveRefreshing: isRemoveRefreshing, IsResetRefreshTime: isResetRefreshTime})
+// nolint[lll]
+func (as *Server) SetRefreshTokenCfg(accessTokenExp, refreshTokenExp time.Duration, isGenerateRefresh, isRemoveAccess, isRemoveRefreshing bool, isResetRefreshTime bool) {
+	as.manager.SetRefreshTokenCfg(
+		&manage.RefreshingConfig{
+			AccessTokenExp:     accessTokenExp,
+			RefreshTokenExp:    refreshTokenExp,
+			IsGenerateRefresh:  isGenerateRefresh,
+			IsRemoveAccess:     isRemoveAccess,
+			IsRemoveRefreshing: isRemoveRefreshing,
+			IsResetRefreshTime: isResetRefreshTime,
+		})
 }
 
 func (as *Server) SetClients(clients ...ClientInfo) {

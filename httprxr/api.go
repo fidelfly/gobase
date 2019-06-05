@@ -14,7 +14,6 @@ func ResponseJSON(w http.ResponseWriter, statusCode int, data interface{}, setti
 	}
 
 	Response(w, setting, NewJSONFiller(data), statusCode)
-	return
 }
 
 //export
@@ -42,11 +41,10 @@ func Response(w http.ResponseWriter, setting ResponseSetting, filler ResponseFil
 	if err != nil {
 		_, _ = w.Write([]byte("Error found during filling response"))
 	}
-	return
 }
 
 //export
-func NewErrorMessage(code string, message string, data ...map[string]interface{}) ResponseMessage {
+func NewErrorMessage(code, message string, data ...map[string]interface{}) ResponseMessage {
 	return NewResponseMessage(RespMessageType.Error, code, message, data...)
 }
 

@@ -14,7 +14,7 @@ func ContextSet(r *http.Request, paris ...interface{}) *http.Request {
 		return r
 	}
 	ct := r.Context()
-	for i := 0; i < len(paris)-1; i = i + 2 {
+	for i := 0; i < len(paris)-1; i += 2 {
 		key := paris[i]
 		val := paris[i+1]
 		if key != nil && val != nil {

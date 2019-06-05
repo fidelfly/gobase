@@ -7,9 +7,9 @@ import (
 )
 
 //export
-func ListenAndServe(router *RootRouter, port int64) {
+func ListenAndServe(handler http.Handler, port int64) {
 	server := &http.Server{
-		Handler: router,
+		Handler: handler,
 		Addr:    fmt.Sprintf(":%d", port),
 	}
 
@@ -17,9 +17,9 @@ func ListenAndServe(router *RootRouter, port int64) {
 }
 
 //export
-func ListenAndServeTLS(certificate string, key string, router *RootRouter, port int64) {
+func ListenAndServeTLS(certificate string, key string, handler http.Handler, port int64) {
 	server := &http.Server{
-		Handler: router,
+		Handler: handler,
 		Addr:    fmt.Sprintf(":%d", port),
 	}
 

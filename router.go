@@ -162,9 +162,11 @@ func (rr *RootRouter) AuditMiddleware(next http.Handler) http.Handler {
 			duration := auditEnd.Sub(auditStart) / time.Millisecond
 			user := httprxr.ContextGet(r, ContextUserKey)
 			if user != nil {
-				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, User=%s, Status=%s]", r.Method, r.URL.Path, duration, user, http.StatusText(statusCode))
+				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, User=%s, Status=%s]",
+					r.Method, r.URL.Path, duration, user, http.StatusText(statusCode))
 			} else {
-				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, Status=%s]", r.Method, r.URL.Path, duration, http.StatusText(statusCode))
+				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, Status=%s]",
+					r.Method, r.URL.Path, duration, http.StatusText(statusCode))
 			}
 		}
 	})
@@ -242,6 +244,7 @@ func SetupAuthorizeRoute(tokenPath string, authServer *authx.Server) *RootRouter
 }
 
 //export
+// nolint:lll
 func AttchAuthorizeRoute(router *RootRouter, tokenPath string, authServer *authx.Server, middlewares ...func(handler http.Handler) http.Handler) *RootRouter {
 	router.SetAuthorizer(authServer)
 	router.Path(tokenPath).Methods(http.MethodPost).Handler(AttachFuncMiddleware(router.HandleTokenRequest, middlewares...))
@@ -267,5 +270,5 @@ func AttachMiddleware(handler http.Handler, middlewares ...func(handler http.Han
 
 //export
 func AttachFuncMiddleware(handlerFunc http.HandlerFunc, middlewares ...func(handler http.Handler) http.Handler) http.Handler {
-	return AttachMiddleware(http.HandlerFunc(handlerFunc), middlewares...)
+	return AttachMiddleware(handlerFunc, middlewares...)
 }

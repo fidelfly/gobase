@@ -43,9 +43,8 @@ func (mc *MemCache) Set(key string, value interface{}) {
 func (mc *MemCache) Get(key string) (interface{}, bool) {
 	if mc.resolver == nil {
 		return mc.TryGet(key)
-	} else {
-		return mc.EnsureGet(key)
 	}
+	return mc.EnsureGet(key)
 }
 
 func (mc *MemCache) TryGet(key string) (interface{}, bool) {

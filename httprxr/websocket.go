@@ -163,12 +163,12 @@ func (wsc *WsConnect) sendToReceiver(message interface{}) {
 		if text, ok := message.(string); ok {
 			logx.CaptureError(wsc.Conn.WriteMessage(gws.TextMessage, []byte(text)))
 			return
-		} else {
-			logx.CaptureError(wsc.Conn.WriteJSON(message))
 		}
+		logx.CaptureError(wsc.Conn.WriteJSON(message))
 	}
 }
 
+// nolint:gocyclo
 func (wsc *WsConnect) startWriter() {
 	var message interface{}
 	if wsc.Duration <= 0 {

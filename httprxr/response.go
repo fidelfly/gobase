@@ -88,7 +88,7 @@ type ResponseMessage struct {
 }
 
 //export
-func NewResponseMessage(msgType messageType, code string, message string, data ...map[string]interface{}) ResponseMessage {
+func NewResponseMessage(msgType messageType, code, message string, data ...map[string]interface{}) ResponseMessage {
 	return ResponseMessage{
 		Type:    msgType,
 		Code:    code,
@@ -98,11 +98,12 @@ func NewResponseMessage(msgType messageType, code string, message string, data .
 }
 
 func combineData(data ...map[string]interface{}) map[string]interface{} {
-	if len(data) == 0 {
+	switch len(data) {
+	case 0:
 		return nil
-	} else if len(data) == 1 {
+	case 1:
 		return data[0]
-	} else {
+	default:
 		mapData := make(map[string]interface{})
 		for _, m := range data {
 			for key, value := range m {
@@ -111,6 +112,7 @@ func combineData(data ...map[string]interface{}) map[string]interface{} {
 		}
 		return mapData
 	}
+
 }
 
 var JSONResponse = &RespSetting{

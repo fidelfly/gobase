@@ -42,7 +42,7 @@ func GetJSONRequestData(r *http.Request) map[string]interface{} {
 func isJSONRequest(r *http.Request) bool {
 	contentType := r.Header.Get("Content-Type")
 	if len(contentType) > 0 {
-		return strings.Index(strings.ToLower(contentType), "application/json") >= 0
+		return strings.Contains(strings.ToLower(contentType), "application/json")
 	}
 	return false
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/natefinch/lumberjack"
 )
 
-func RotateLog(filename string, maxSize int, maxBackup int, maxAge int, compress bool) io.Writer {
+func RotateLog(filename string, maxSize int, maxBackup, maxAge int, compress bool) io.Writer {
 	if maxSize == 0 {
 		maxSize = 1
 	}
