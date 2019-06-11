@@ -36,3 +36,9 @@ func PlainFormatter(timeFormat string) Formatter {
 		TimestampFormat: timeFormat,
 	}
 }
+
+func JSONFormatter(timeFormat string) Formatter {
+	return &formatLogrus{&logrus.JSONFormatter{
+		TimestampFormat: timeFormat,
+	}}
+}

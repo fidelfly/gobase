@@ -12,6 +12,10 @@ func StandardLogger() *Logger {
 	return std
 }
 
+func SetStandard(logger *Logger) {
+	std = logger
+}
+
 // SetOutput sets the standard logger output.
 func SetOutput(out io.Writer) {
 	logrus.SetOutput(out)

@@ -101,6 +101,13 @@ func (entry *Entry) WithField(key string, value interface{}) *Entry {
 	return entry.WithFields(Fields{key: value})
 }
 
+func (entry *Entry) Log(v ...interface{}) {
+	entry.Info(v...)
+}
+func (entry *Entry) Logf(format string, v ...interface{}) {
+	entry.Infof(format, v...)
+}
+
 // Add a map of fields to the Entry.
 func (entry *Entry) WithFields(fields Fields) *Entry {
 	return &Entry{entry.Entry.WithFields(logrus.Fields(fields))}
@@ -114,6 +121,13 @@ func (logger *Logger) WithField(key string, value interface{}) *Entry {
 // each `Field`.
 func (logger *Logger) WithFields(fields Fields) *Entry {
 	return NewEntry(logger).WithFields(fields)
+}
+
+func (logger *Logger) Log(v ...interface{}) {
+	logger.Info(v...)
+}
+func (logger *Logger) Logf(format string, v ...interface{}) {
+	logger.Infof(format, v...)
 }
 
 type StdLog interface {
