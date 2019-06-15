@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
+	"gopkg.in/oauth2.v3"
+
 	"github.com/fidelfly/fxgo/routex"
 
 	"github.com/gorilla/mux"
-
-	"gopkg.in/oauth2.v3"
 
 	"github.com/fidelfly/fxgo/errorx"
 	"github.com/fidelfly/fxgo/httprxr"
@@ -40,8 +40,85 @@ type RouterHook func()
 
 type RootRouter struct {
 	*routex.Router
-	authServer  *authx.Server
+	//authServer  *authx.Server
 	auditLogger logx.StdLog
+	authFilter  func(w http.ResponseWriter, req *http.Request, next http.Handler)
+}
+
+type RouterPlugin interface {
+	Inject(*RootRouter)
+}
+
+func (rr *RootRouter) AttachPlugins(plugins ...RouterPlugin) {
+	for _, plugin := range plugins {
+		plugin.Inject(rr)
+	}
+}
+
+type TokenIssuer struct {
+	*authx.Server
+	tokenPath string
+	//clearPath string
+}
+
+func (t *TokenIssuer) Setup(server *authx.Server, tokenPath string) {
+	t.Server = server
+	t.tokenPath = tokenPath
+}
+
+//export
+func NewTokenIssuer(server *authx.Server, tokenPath string) *TokenIssuer {
+	return &TokenIssuer{server, tokenPath}
+}
+
+func (t *TokenIssuer) Inject(rr *RootRouter) {
+	//rr.SetAuthFilter(t.AuthFilter)
+	rr.EnableAuthFilter(t.AuthFilter)
+	rr.Path(t.tokenPath).Methods(http.MethodPost).Handler(AttachFuncMiddleware(t.HandleTokenRequest))
+}
+
+func (t *TokenIssuer) AuthFilter(w http.ResponseWriter, r *http.Request, next http.Handler) {
+	if ti, err := t.ValidateToken(w, r); err != nil {
+		if codeError, ok := err.(errorx.Error); ok {
+			httprxr.ResponseJSON(w, http.StatusUnauthorized, httprxr.ErrorMessage(codeError))
+		} else {
+			httprxr.ResponseJSON(w, http.StatusUnauthorized, httprxr.MakeErrorMessage(authx.UnauthorizedErrorCode, err))
+		}
+		return
+	} else if ti != nil {
+		r = httprxr.ContextSet(r, ContextUserKey, ti.GetUserID(), ContextTokenKey, ti)
+	}
+	next.ServeHTTP(w, r)
+
+}
+
+func (t *TokenIssuer) AuthorizeDisposeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		obj := httprxr.ContextGet(r, ContextTokenKey)
+		if obj != nil {
+			if ti, ok := obj.(oauth2.TokenInfo); ok {
+				logx.CaptureError(t.RemoveAccessToken(ti.GetAccess()))
+				logx.CaptureError(t.RemoveRefreshToken(ti.GetRefresh()))
+			}
+		}
+	})
+}
+
+func (t *TokenIssuer) AuthorizeDisposeHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	obj := httprxr.ContextGet(r, ContextTokenKey)
+	if obj != nil {
+		if ti, ok := obj.(oauth2.TokenInfo); ok {
+			logx.CaptureError(t.RemoveAccessToken(ti.GetAccess()))
+			logx.CaptureError(t.RemoveRefreshToken(ti.GetRefresh()))
+			httprxr.ResponseJSON(w, http.StatusOK, nil)
+			return
+		}
+		//should never come to here
+		httprxr.ResponseJSON(w, http.StatusInternalServerError, httprxr.ExceptionMessage(errors.New("token is not right")))
+		return
+	}
+	httprxr.ResponseJSON(w, http.StatusNotFound, nil)
 }
 
 func (rr *RootRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -58,48 +135,26 @@ func (rr *RootRouter) EnableAudit(loggers ...logx.StdLog) {
 	rr.Router.Use(rr.AuditMiddleware)
 }
 
+func (rr *RootRouter) SetAuthFilter(filter func(w http.ResponseWriter, req *http.Request, next http.Handler)) {
+	rr.authFilter = filter
+}
+
+func (rr *RootRouter) EnableAuthFilter(filter ...func(w http.ResponseWriter, req *http.Request, next http.Handler)) {
+	if len(filter) > 0 {
+		rr.SetAuthFilter(filter[0])
+	}
+	rr.Router.Use(rr.AuthorizeMiddleware)
+}
+
 func (rr *RootRouter) ProtectPrefix(pathPrefix string) *routex.Router {
 	myRouter := rr.PathPrefix(pathPrefix).Restricted(true).Subrouter()
 	//myRouter.Use(rr.AuthorizeMiddleware)
 	return myRouter
 }
 
-func (rr *RootRouter) SetAuthorizer(server *authx.Server) {
+/*func (rr *RootRouter) SetAuthorizer(server *authx.Server) {
 	rr.authServer = server
-}
-
-func (rr *RootRouter) HandleTokenRequest(w http.ResponseWriter, r *http.Request) {
-	logx.CaptureError(rr.authServer.HandleTokenRequest(w, r))
-}
-
-func (rr *RootRouter) AuthorizeDisposeMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-		obj := httprxr.ContextGet(r, ContextTokenKey)
-		if obj != nil {
-			if ti, ok := obj.(oauth2.TokenInfo); ok {
-				logx.CaptureError(rr.authServer.RemoveAccessToken(ti.GetAccess()))
-				logx.CaptureError(rr.authServer.RemoveRefreshToken(ti.GetRefresh()))
-			}
-		}
-	})
-}
-
-func (rr *RootRouter) AuthorizeDisposeHandlerFunc(w http.ResponseWriter, r *http.Request) {
-	obj := httprxr.ContextGet(r, ContextTokenKey)
-	if obj != nil {
-		if ti, ok := obj.(oauth2.TokenInfo); ok {
-			logx.CaptureError(rr.authServer.RemoveAccessToken(ti.GetAccess()))
-			logx.CaptureError(rr.authServer.RemoveRefreshToken(ti.GetRefresh()))
-			httprxr.ResponseJSON(w, http.StatusOK, nil)
-			return
-		}
-		//should never come to here
-		httprxr.ResponseJSON(w, http.StatusInternalServerError, httprxr.ExceptionMessage(errors.New("token is not right")))
-		return
-	}
-	httprxr.ResponseJSON(w, http.StatusNotFound, nil)
-}
+}*/
 
 func (rr *RootRouter) CurrentRouteConfig(r *http.Request) (routex.RouteConfig, bool) {
 	if route := mux.CurrentRoute(r); route != nil {
@@ -115,7 +170,7 @@ func (rr *RootRouter) CurrentRouteConfig(r *http.Request) (routex.RouteConfig, b
 
 func (rr *RootRouter) AuthorizeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if rr.authServer == nil {
+		if rr.authFilter == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -124,19 +179,10 @@ func (rr *RootRouter) AuthorizeMiddleware(next http.Handler) http.Handler {
 			restricted = config.IsRestricted()
 		}
 		if restricted {
-			if ti, err := rr.authServer.ValidateToken(w, r); err != nil {
-				if codeError, ok := err.(errorx.Error); ok {
-					httprxr.ResponseJSON(w, http.StatusUnauthorized, httprxr.ErrorMessage(codeError))
-				} else {
-					httprxr.ResponseJSON(w, http.StatusUnauthorized, httprxr.MakeErrorMessage(authx.UnauthorizedErrorCode, err))
-				}
-				return
-			} else if ti != nil {
-				r = httprxr.ContextSet(r, ContextUserKey, ti.GetUserID(), ContextTokenKey, ti)
-			}
+			rr.authFilter(w, r, next)
+		} else {
+			next.ServeHTTP(w, r)
 		}
-
-		next.ServeHTTP(w, r)
 	})
 }
 
@@ -238,18 +284,23 @@ func EnableRouterAudit(loggers ...logx.StdLog) *RootRouter {
 	return myRouter
 }
 
-//export
+/*//export
 func SetupAuthorizeRoute(tokenPath string, authServer *authx.Server) *RootRouter {
 	return AttchAuthorizeRoute(Router(), tokenPath, authServer)
 }
+*/
 
-//export
+/*//export
 // nolint:lll
 func AttchAuthorizeRoute(router *RootRouter, tokenPath string, authServer *authx.Server, middlewares ...func(handler http.Handler) http.Handler) *RootRouter {
-	router.SetAuthorizer(authServer)
-	router.Path(tokenPath).Methods(http.MethodPost).Handler(AttachFuncMiddleware(router.HandleTokenRequest, middlewares...))
+	router.Path(tokenPath).Methods(http.MethodPost).Handler(AttachFuncMiddleware(authServer.HandleTokenRequest, middlewares...))
 	router.Use(router.AuthorizeMiddleware)
 	return router
+}*/
+
+//export
+func AttachRouterPlugin(plugins ...RouterPlugin) {
+	Router().AttachPlugins(plugins...)
 }
 
 //export

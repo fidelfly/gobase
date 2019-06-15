@@ -93,8 +93,8 @@ func (as *Server) SetExtensionFieldsHandler(handler func(ti oauth2.TokenInfo) ma
 	as.server.ExtensionFieldsHandler = handler
 }
 
-func (as *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) error {
-	return as.server.HandleTokenRequest(w, r)
+func (as *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) {
+	logx.CaptureError(as.server.HandleTokenRequest(w, r))
 }
 
 func (as *Server) ValidateToken(w http.ResponseWriter, r *http.Request) (ti oauth2.TokenInfo, err error) {

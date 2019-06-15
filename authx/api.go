@@ -7,6 +7,7 @@ import (
 )
 
 //export
+//nolint[lll]
 func SetupPasswordAuthServer(client ClientInfo, pwdHandler func(username, password string) (string, error), tokenStore oauth2.TokenStore, opts ...AuthOption) *Server {
 	server := NewOAuthServer()
 	if tokenStore != nil {
