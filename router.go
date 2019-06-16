@@ -28,11 +28,7 @@ const (
 	defaultRouterKey = "router.default"
 )
 
-var routerMap = map[string]*RootRouter{
-	defaultRouterKey: {
-		Router: routex.New(),
-	},
-}
+var routerMap = make(map[string]*RootRouter)
 
 //var defaultRouter = NewRouter()
 
@@ -235,15 +231,24 @@ func AttachHookRoute() {
 
 //export
 func Router(routerKey ...string) *RootRouter {
-	if len(routerKey) == 0 {
-		return routerMap[defaultRouterKey]
-	}
-	for _, key := range routerKey {
-		if myRouter, ok := routerMap[key]; ok {
-			return myRouter
+	//var myRouter *RootRouter
+	if len(routerKey) > 0 {
+		for _, key := range routerKey {
+			if myRouter, ok := routerMap[key]; ok {
+				return myRouter
+			}
 		}
+		return nil
 	}
-	return nil
+
+	if myRouter, ok := routerMap[defaultRouterKey]; ok {
+		return myRouter
+	}
+	myRouter := &RootRouter{
+		Router: routex.New(),
+	}
+	routerMap[defaultRouterKey] = myRouter
+	return myRouter
 
 }
 
@@ -283,20 +288,6 @@ func EnableRouterAudit(loggers ...logx.StdLog) *RootRouter {
 	}
 	return myRouter
 }
-
-/*//export
-func SetupAuthorizeRoute(tokenPath string, authServer *authx.Server) *RootRouter {
-	return AttchAuthorizeRoute(Router(), tokenPath, authServer)
-}
-*/
-
-/*//export
-// nolint:lll
-func AttchAuthorizeRoute(router *RootRouter, tokenPath string, authServer *authx.Server, middlewares ...func(handler http.Handler) http.Handler) *RootRouter {
-	router.Path(tokenPath).Methods(http.MethodPost).Handler(AttachFuncMiddleware(authServer.HandleTokenRequest, middlewares...))
-	router.Use(router.AuthorizeMiddleware)
-	return router
-}*/
 
 //export
 func AttachRouterPlugin(plugins ...RouterPlugin) {
