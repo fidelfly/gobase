@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"gopkg.in/oauth2.v3/errors"
+
 	"github.com/fidelfly/fxgo/errorx"
 
 	"github.com/fidelfly/fxgo/logx"
@@ -100,11 +102,19 @@ func (as *Server) HandleTokenRequest(w http.ResponseWriter, r *http.Request) {
 func (as *Server) ValidateToken(w http.ResponseWriter, r *http.Request) (ti oauth2.TokenInfo, err error) {
 	ti, err = as.server.ValidationBearerToken(r)
 	if err != nil {
-		err = errorx.NewCodeError(err, UnauthorizedErrorCode)
+		switch err {
+		case errors.ErrInvalidAccessToken:
+		case errors.ErrExpiredRefreshToken:
+			err = errorx.NewCodeError(err, UnauthorizedErrorCode)
+		case errors.ErrExpiredAccessToken:
+			err = errorx.NewCodeError(err, TokenExpiredErrorCode)
+		default:
+			err = errorx.NewCodeError(err, UnauthorizedErrorCode)
+		}
 		return
 	}
 
-	if ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now()) {
+	/*if ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).After(time.Now()) {
 		return
 	}
 
@@ -112,7 +122,7 @@ func (as *Server) ValidateToken(w http.ResponseWriter, r *http.Request) (ti oaut
 		err = errorx.NewError(UnauthorizedErrorCode, "refresh token is expired")
 		return
 	}
-	err = errorx.NewError(TokenExpiredErrorCode, "token is expired")
+	err = errorx.NewError(TokenExpiredErrorCode, "token is expired")*/
 	return
 }
 
