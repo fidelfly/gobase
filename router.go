@@ -70,7 +70,7 @@ func NewTokenIssuer(server *authx.Server, tokenPath string) *TokenIssuer {
 func (t *TokenIssuer) Inject(rr *RootRouter) {
 	//rr.SetAuthFilter(t.AuthFilter)
 	rr.EnableAuthFilter(t.AuthFilter)
-	rr.Path(t.tokenPath).Methods(http.MethodPost).Handler(AttachFuncMiddleware(t.HandleTokenRequest))
+	rr.Path(t.tokenPath).Methods(http.MethodPost).HandlerFunc(t.HandleTokenRequest)
 }
 
 func (t *TokenIssuer) AuthFilter(w http.ResponseWriter, r *http.Request, next http.Handler) {
@@ -259,7 +259,9 @@ func NewRouter(routerKey ...string) *RootRouter {
 	}
 	if len(routerKey) > 0 {
 		for _, key := range routerKey {
-			routerMap[key] = myRouter
+			if len(key) > 0 {
+				routerMap[key] = myRouter
+			}
 		}
 	}
 
