@@ -47,6 +47,14 @@ func (r *Router) GetRouteConfig(route *mux.Route) *RouteConfig {
 	return r.routeConfig[route]
 }
 
+func (r *Router) Restricted(restricted bool) {
+	r.config.restricted = restricted
+}
+
+func (r *Router) Audit(audit bool) {
+	r.config.audit = audit
+}
+
 type Route struct {
 	myRoute     *mux.Route
 	routeConfig map[*mux.Route]*RouteConfig
