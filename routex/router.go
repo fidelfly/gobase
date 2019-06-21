@@ -35,6 +35,14 @@ type Router struct {
 	config      RouteConfig
 }
 
+type RouteRegister func(r *Router)
+
+func (r *Router) Register(regs ...RouteRegister) {
+	for _, reg := range regs {
+		reg(r)
+	}
+}
+
 func (r *Router) GetRouteConfig(route *mux.Route) *RouteConfig {
 	return r.routeConfig[route]
 }
