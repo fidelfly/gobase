@@ -378,24 +378,25 @@ func (wsp *WsProgress) Set(percent int, status string, message ...interface{}) {
 
 func (wsp *WsProgress) updateData(percent int, status string, message interface{}) bool {
 	dataChange := false
+
+	newData := map[string]interface{}{
+		"code":    wsp.Code,
+		"percent": percent,
+		"status":  status,
+		"message": message,
+	}
+
 	if wsp.data == nil {
-		wsp.data = make(map[string]interface{})
-	}
-
-	if wsp.data["percent"] != percent {
 		dataChange = true
-		wsp.data["percent"] = percent
+	} else {
+		dataChange = newData["percent"] != wsp.data["percent"] ||
+			newData["status"] != wsp.data["status"] ||
+			newData["message"] != wsp.data["message"]
 	}
 
-	if wsp.data["status"] != status {
-		wsp.data["status"] = status
+	if dataChange {
+		wsp.data = newData
 	}
-
-	if wsp.data["message"] != message {
-		wsp.data["message"] = message
-	}
-
-	wsp.data["code"] = wsp.Code
 
 	return dataChange
 }
