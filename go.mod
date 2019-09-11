@@ -10,5 +10,6 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2
+	github.com/tidwall/buntdb v1.0.0
 	gopkg.in/oauth2.v3 v3.10.0
 )
