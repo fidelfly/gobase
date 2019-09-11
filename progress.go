@@ -3,17 +3,17 @@ package fxgo
 import (
 	"net/http"
 
+	"github.com/fidelfly/fxgo/cachex/mcache"
 	"github.com/fidelfly/fxgo/logx"
 
 	"github.com/fidelfly/fxgo/pkg/randx"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/fidelfly/fxgo/cachex"
 	"github.com/fidelfly/fxgo/httprxr"
 )
 
-var socketCache = cachex.CreateCache(cachex.DefaultExpiration, 0)
+var socketCache = mcache.NewCache(mcache.DefaultExpiration, 0)
 
 //export
 func GetProgress(key string, code string) *httprxr.WsProgress {

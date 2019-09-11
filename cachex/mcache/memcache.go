@@ -1,4 +1,4 @@
-package cachex
+package mcache
 
 import (
 	"time"
@@ -63,11 +63,12 @@ func (mc *MemCache) EnsureGet(key string) (interface{}, bool) {
 	return value, ok
 }
 
-func CreateCache(defaultExpiration, cleanupInterval time.Duration) *MemCache {
+//export
+func NewCache(defaultExpiration, cleanupInterval time.Duration) *MemCache {
 	return &MemCache{cacheInstance: gocache.New(defaultExpiration, cleanupInterval)}
 }
 
 //export
-func CreateEnsureCache(defaultExpiration, cleanupInterval time.Duration, resolver Resolver) *MemCache {
+func NewEnsureCache(defaultExpiration, cleanupInterval time.Duration, resolver Resolver) *MemCache {
 	return &MemCache{cacheInstance: gocache.New(defaultExpiration, cleanupInterval), resolver: resolver}
 }
