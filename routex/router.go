@@ -9,17 +9,36 @@ import (
 type RouteConfig struct {
 	restricted bool
 	audit      bool
+	props      map[string]interface{}
+}
+
+func (rc *RouteConfig) SetProps(key string, prop interface{}) {
+	if rc.props == nil {
+		rc.props = make(map[string]interface{})
+	}
+	rc.props[key] = prop
+}
+
+func (rc *RouteConfig) GetProps(key string) interface{} {
+	if rc.props == nil {
+		return nil
+	}
+	return rc.props[key]
 }
 
 func NewConfig() RouteConfig {
 	return RouteConfig{audit: true}
 }
 
-func (rc RouteConfig) GetCopy() RouteConfig {
-	return RouteConfig{
+func (rc RouteConfig) GetCopy(includeProp ...bool) RouteConfig {
+	copyRc := RouteConfig{
 		restricted: rc.restricted,
 		audit:      rc.audit,
 	}
+	if len(includeProp) > 0 && includeProp[0] {
+		copyRc.props = rc.props
+	}
+	return copyRc
 }
 func (rc RouteConfig) IsRestricted() bool {
 	return rc.restricted
@@ -72,6 +91,20 @@ func (r *Route) SetConfig(config RouteConfig) *Route {
 
 func (r *Route) getConfig() *RouteConfig {
 	return r.routeConfig[r.myRoute]
+}
+
+func (r *Route) SetProps(key string, prop interface{}) *Route {
+	if config := r.getConfig(); config != nil {
+		config.SetProps(key, prop)
+	}
+	return r
+}
+
+func (r *Route) GetProps(key string) interface{} {
+	if config := r.getConfig(); config != nil {
+		return config.GetProps(key)
+	}
+	return nil
 }
 
 func (r *Route) Restricted(restricted bool) *Route {

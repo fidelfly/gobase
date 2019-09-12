@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"gopkg.in/oauth2.v3"
@@ -131,6 +132,10 @@ func (rr *RootRouter) EnableAudit(loggers ...logx.StdLog) {
 	rr.Router.Use(rr.AuditMiddleware)
 }
 
+func (rr *RootRouter) EnableRecover() {
+	rr.Router.Use(rr.RecoverMiddleware)
+}
+
 func (rr *RootRouter) SetAuthFilter(filter func(w http.ResponseWriter, req *http.Request, next http.Handler)) {
 	rr.authFilter = filter
 }
@@ -156,7 +161,7 @@ func (rr *RootRouter) CurrentRouteConfig(r *http.Request) (routex.RouteConfig, b
 	if route := mux.CurrentRoute(r); route != nil {
 		config := rr.GetRouteConfig(route)
 		if config != nil {
-			return config.GetCopy(), true
+			return config.GetCopy(true), true
 		}
 	}
 	//should never come to here
@@ -179,6 +184,22 @@ func (rr *RootRouter) AuthorizeMiddleware(next http.Handler) http.Handler {
 		} else {
 			next.ServeHTTP(w, r)
 		}
+	})
+}
+
+func (rr *RootRouter) RecoverMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				if rr.auditLogger != nil {
+					rr.auditLogger.Panicf("Panic occurs when handle %s %s", r.Method, r.URL.Path)
+					rr.auditLogger.Error(debug.Stack())
+				}
+			}
+		}()
+
+		next.ServeHTTP(w, r)
 	})
 }
 
