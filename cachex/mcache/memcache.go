@@ -24,6 +24,10 @@ type MemCache struct {
 	resolver      Resolver
 }
 
+func (mc *MemCache) SetOnEvicted(f func(string, interface{})) {
+	mc.cacheInstance.OnEvicted(f)
+}
+
 func (mc *MemCache) GetStore() *gocache.Cache {
 	return mc.cacheInstance
 }

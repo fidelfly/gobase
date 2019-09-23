@@ -10,3 +10,10 @@ func GenUUID(name string) string {
 	key := uuid.Must(uuid.NewV5(uid, name), nil)
 	return key.String()
 }
+
+//export
+func GetUUID(name string) string {
+	uid := uuid.NewV4()
+	key := uuid.Must(uuid.NewV5(uid, name), nil)
+	return key.String()
+}

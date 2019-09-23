@@ -9,6 +9,7 @@ import (
 
 	"gopkg.in/oauth2.v3"
 
+	"github.com/fidelfly/fxgo/pkg/randx"
 	"github.com/fidelfly/fxgo/routex"
 
 	"github.com/gorilla/mux"
@@ -22,8 +23,9 @@ import (
 
 const (
 	//contextKey
-	ContextUserKey  = "context.user.id"
-	ContextTokenKey = "context.token"
+	ContextUserKey   = "context.user.id"
+	ContextTokenKey  = "context.token"
+	ContextRequestId = "context.request.id"
 
 	//routerName
 	defaultRouterKey = "router.default"
@@ -214,6 +216,8 @@ func (rr *RootRouter) AuditMiddleware(next http.Handler) http.Handler {
 		}
 		auditStart := time.Now()
 		w = httprxr.MakeStatusResponse(w)
+		reqId := randx.GenUUID(r.URL.Path)
+		r = httprxr.ContextSet(r, ContextRequestId, reqId)
 		next.ServeHTTP(w, r)
 
 		auditEnd := time.Now()
@@ -225,11 +229,11 @@ func (rr *RootRouter) AuditMiddleware(next http.Handler) http.Handler {
 			duration := auditEnd.Sub(auditStart) / time.Millisecond
 			user := httprxr.ContextGet(r, ContextUserKey)
 			if user != nil {
-				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, User=%s, Status=%s]",
-					r.Method, r.URL.Path, duration, user, http.StatusText(statusCode))
+				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, User=%s, Status=%s, RequestId=%s]",
+					r.Method, r.URL.Path, duration, user, http.StatusText(statusCode), reqId)
 			} else {
-				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, Status=%s]",
-					r.Method, r.URL.Path, duration, http.StatusText(statusCode))
+				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, Status=%s, RequestId=%s]",
+					r.Method, r.URL.Path, duration, http.StatusText(statusCode), reqId)
 			}
 		}
 	})
