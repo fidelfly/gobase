@@ -376,9 +376,7 @@ func (wsp *WsProgress) Set(percent int, status string, message ...interface{}) {
 	wsp.update(percent, status, message...)
 }
 
-func (wsp *WsProgress) updateData(percent int, status string, message interface{}) bool {
-	dataChange := false
-
+func (wsp *WsProgress) updateData(percent int, status string, message interface{}) (dataChange bool) {
 	newData := map[string]interface{}{
 		"code":    wsp.Code,
 		"percent": percent,
