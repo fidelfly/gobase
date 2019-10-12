@@ -1,4 +1,4 @@
-package fxgo
+package gosrvx
 
 import (
 	"errors"
@@ -9,6 +9,7 @@ import (
 
 	"gopkg.in/oauth2.v3"
 
+	"github.com/fidelfly/fxgo"
 	"github.com/fidelfly/fxgo/pkg/randx"
 	"github.com/fidelfly/fxgo/routex"
 
@@ -121,7 +122,7 @@ func (t *TokenIssuer) AuthorizeDisposeHandlerFunc(w http.ResponseWriter, r *http
 }
 
 func (rr *RootRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	defer CapturePanicAndRecover(fmt.Sprintf("Panic found and recovered during %s:%s", req.Method, req.URL.Path))
+	defer fxgo.CapturePanicAndRecover(fmt.Sprintf("Panic found and recovered during %s:%s", req.Method, req.URL.Path))
 	rr.Router.ServeHTTP(w, req)
 }
 
@@ -129,7 +130,7 @@ func (rr *RootRouter) EnableAudit(loggers ...logx.StdLog) {
 	if len(loggers) > 0 {
 		rr.auditLogger = loggers[0]
 	} else {
-		rr.auditLogger = ConsoleOutput{}
+		rr.auditLogger = fxgo.ConsoleOutput{}
 	}
 	rr.Router.Use(rr.AuditMiddleware)
 }

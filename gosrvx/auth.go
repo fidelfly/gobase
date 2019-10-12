@@ -1,4 +1,4 @@
-package fxgo
+package gosrvx
 
 import (
 	"gopkg.in/oauth2.v3"

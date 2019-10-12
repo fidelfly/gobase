@@ -1,26 +1,28 @@
-package fxgo
+package gosrvx
 
 import (
 	"net/http"
 
 	"github.com/fidelfly/fxgo/cachex/mcache"
+	"github.com/fidelfly/fxgo/httprxr"
 	"github.com/fidelfly/fxgo/logx"
-
 	"github.com/fidelfly/fxgo/pkg/randx"
+	"github.com/fidelfly/fxgo/progx"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/fidelfly/fxgo/httprxr"
 )
 
 var socketCache = mcache.NewCache(mcache.DefaultExpiration, 0)
 
 //export
-func GetProgress(key string, code string) *httprxr.WsProgress {
+func GetProgress(key string, code string) *progx.Progress {
 	if conn, ok := socketCache.Get(key); ok {
-		return httprxr.NewWsProgress(conn.(*httprxr.WsConnect), code)
+		if wsconn, ok := conn.(*httprxr.WsConnect); ok {
+			return progx.NewProgress((*httprxr.WsProgressHandler)(wsconn), code)
+		}
+		//return progx.NewProgress(*httprxr.WsProgressHandler(conn.(*httprxr.WsConnect)), code)
 	}
-	return httprxr.NewWsProgress(nil, code)
+	return progx.NewProgress(nil, code)
 }
 
 //export

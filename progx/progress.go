@@ -1,8 +1,7 @@
-package httprxr
+package progx
 
 import (
 	"encoding/json"
-	"errors"
 	"sync"
 	"time"
 
@@ -308,9 +307,10 @@ func newAutoProgress(progress ProgressSetter, stepValue int, duration time.Durat
 	return &AutoProgress{progress: progress, stepValue: stepValue, duration: duration, maxValue: maxValue}
 }
 
-//Core Struct : WsProgress
-type WsProgress struct {
-	ws           *WsConnect
+//Core Struct : Progress
+type Progress struct {
+	//ws           *httprxr.WsConnect
+	handler      ProgressHandler
 	Code         string
 	Message      interface{}
 	Percent      int
@@ -324,118 +324,113 @@ type WsProgress struct {
 	senderLock   sync.Mutex
 }
 
-type WsProgressHandler WsConnect
-
-func (wph *WsProgressHandler) SendData(msg interface{}) error {
-	conn := (*WsConnect)(wph)
-	if conn.IsOpen() {
-		conn.SendMessage(msg)
-	} else {
-		return errors.New("websocket connection is not open")
-	}
-	return nil
+type ProgressHandler interface {
+	SendData(msg interface{}) error
 }
 
-func NewWsProgress(ws *WsConnect, code string) *WsProgress {
-	return &WsProgress{ws: ws, Code: code}
+func NewProgress(handler ProgressHandler, code string) *Progress {
+	return &Progress{handler: handler, Code: code}
 }
 
-func (wsp *WsProgress) GetPercent() int {
-	return wsp.Percent
+/*func NewWsProgress(ws *httprxr.WsConnect, code string) *Progress {
+	return &Progress{ws: ws, Code: code}
+}*/
+
+func (p *Progress) GetPercent() int {
+	return p.Percent
 }
 
-func (wsp *WsProgress) GetStatus() string {
-	return wsp.Status
+func (p *Progress) GetStatus() string {
+	return p.Status
 }
-func (wsp *WsProgress) GetMessage() interface{} {
-	return wsp.Message
-}
-
-func (wsp *WsProgress) SetStatus(status string, message ...interface{}) {
-	wsp.Set(wsp.Percent, status, message...)
+func (p *Progress) GetMessage() interface{} {
+	return p.Message
 }
 
-func (wsp *WsProgress) Exception(percent int, message ...interface{}) {
-	wsp.Set(percent, ProgressException, message...)
+func (p *Progress) SetStatus(status string, message ...interface{}) {
+	p.Set(p.Percent, status, message...)
 }
 
-func (wsp *WsProgress) Active(percent int, message ...interface{}) {
-	wsp.Set(percent, ProgressActive, message...)
+func (p *Progress) Exception(percent int, message ...interface{}) {
+	p.Set(percent, ProgressException, message...)
 }
 
-func (wsp *WsProgress) Success(message ...interface{}) {
-	wsp.Set(100, ProgressSuccess, message...)
+func (p *Progress) Active(percent int, message ...interface{}) {
+	p.Set(percent, ProgressActive, message...)
 }
 
-func (wsp *WsProgress) Done(status string, message ...interface{}) {
-	wsp.Set(100, status, message...)
+func (p *Progress) Success(message ...interface{}) {
+	p.Set(100, ProgressSuccess, message...)
 }
 
-func (wsp *WsProgress) update(percent int, status string, message ...interface{}) {
-	wsp.Percent = percent
-	wsp.Status = status
+func (p *Progress) Done(status string, message ...interface{}) {
+	p.Set(100, status, message...)
+}
+
+func (p *Progress) update(percent int, status string, message ...interface{}) {
+	p.Percent = percent
+	p.Status = status
 	if len(message) > 0 {
-		wsp.Message = message[0]
+		p.Message = message[0]
 	}
 
-	wsp.SendMsg()
+	p.SendMsg()
 }
 
-func (wsp *WsProgress) Set(percent int, status string, message ...interface{}) {
-	if wsp.auto != nil {
-		wsp.auto.Stop()
-		wsp.auto = nil
+func (p *Progress) Set(percent int, status string, message ...interface{}) {
+	if p.auto != nil {
+		p.auto.Stop()
+		p.auto = nil
 	}
-	wsp.update(percent, status, message...)
+	p.update(percent, status, message...)
 }
 
-func (wsp *WsProgress) updateData(percent int, status string, message interface{}) (dataChange bool) {
+func (p *Progress) updateData(percent int, status string, message interface{}) (dataChange bool) {
 	newData := map[string]interface{}{
-		"code":    wsp.Code,
+		"code":    p.Code,
 		"percent": percent,
 		"status":  status,
 		"message": message,
 	}
 
-	if wsp.data == nil {
+	if p.data == nil {
 		dataChange = true
 	} else {
-		dataChange = newData["percent"] != wsp.data["percent"] ||
-			newData["status"] != wsp.data["status"] ||
-			newData["message"] != wsp.data["message"]
+		dataChange = newData["percent"] != p.data["percent"] ||
+			newData["status"] != p.data["status"] ||
+			newData["message"] != p.data["message"]
 	}
 
 	if dataChange {
-		wsp.data = newData
+		p.data = newData
 	}
 
 	return dataChange
 }
 
-func (wsp *WsProgress) delaySend(timer *time.Timer) {
-	wsp.delayed = true
+func (p *Progress) delaySend(timer *time.Timer) {
+	p.delayed = true
 	go func() {
 		defer timer.Stop()
 		for {
 			select {
 			case <-timer.C:
-				wsp.senderLock.Lock()
-				if wsp.delayMessage {
-					if wsp.ws != nil && wsp.ws.IsOpen() {
-						wsp.ws.SendMessage(wsp.data)
+				p.senderLock.Lock()
+				if p.delayMessage {
+					if err := p.handler.SendData(p.data); err == nil {
 						timer.Reset(100 * time.Millisecond)
-						wsp.delayMessage = false
-						wsp.senderLock.Unlock()
+						p.delayMessage = false
+						p.senderLock.Unlock()
 					} else {
-						wsp.delayed = false
-						wsp.delayMessage = false
-						wsp.senderLock.Unlock()
+						p.delayed = false
+						p.delayMessage = false
+						p.senderLock.Unlock()
 						return
 					}
 				} else {
-					wsp.delayed = false
-					wsp.delayMessage = false
-					wsp.senderLock.Unlock()
+					p.delayed = false
+					p.delayMessage = false
+					p.senderLock.Unlock()
 					return
 				}
 			default:
@@ -446,92 +441,91 @@ func (wsp *WsProgress) delaySend(timer *time.Timer) {
 	}()
 }
 
-func (wsp *WsProgress) Send(percent int, status string, message interface{}) {
-	wsp.senderLock.Lock()
-	defer wsp.senderLock.Unlock()
-	if !wsp.updateData(percent, status, message) {
+func (p *Progress) Send(percent int, status string, message interface{}) {
+	p.senderLock.Lock()
+	defer p.senderLock.Unlock()
+	if !p.updateData(percent, status, message) {
 		return
 	}
-	if wsp.ws != nil && wsp.ws.IsOpen() {
-		if !wsp.delayed {
-			wsp.ws.SendMessage(wsp.data)
-			wsp.delaySend(time.NewTimer(100 * time.Millisecond))
+	if !p.delayed {
+		if err := p.handler.SendData(p.data); err == nil {
+			p.delaySend(time.NewTimer(100 * time.Millisecond))
 		} else {
-			wsp.delayMessage = true
+			msg := ""
+			if message != nil {
+				if msgText, ok := message.(string); ok {
+					msg = msgText
+				} else if msgData, err := json.Marshal(message); err == nil {
+					msg = string(msgData)
+				}
+			}
+			logx.Infof("Progress(%s) : percent = %d%%, status = %s, message = %s", p.Code, percent, status, msg)
 		}
 	} else {
-		msg := ""
-		if message != nil {
-			if msgText, ok := message.(string); ok {
-				msg = msgText
-			} else if msgData, err := json.Marshal(message); err == nil {
-				msg = string(msgData)
-			}
-		}
-		logx.Infof("Progress(%s) : percent = %d%%, status = %s, message = %s", wsp.Code, percent, status, msg)
+		p.delayMessage = true
 	}
 }
 
-func (wsp *WsProgress) SendMsg() {
-	wsp.Send(wsp.Percent, wsp.Status, wsp.Message)
-	/*if wsp.ws != nil && wsp.ws.IsOpen() {
-		wsp.ws.SendMessage(wsp)
+func (p *Progress) SendMsg() {
+	p.Send(p.Percent, p.Status, p.Message)
+	/*if p.ws != nil && p.ws.IsOpen() {
+		p.ws.SendMessage(p)
 	} else {
 		msg := ""
-		if wsp.Message != nil {
-			if msgText, ok := wsp.Message.(string); ok {
+		if p.Message != nil {
+			if msgText, ok := p.Message.(string); ok {
 				msg = msgText
 			} else {
-				if msgData, err := json.Marshal(wsp.Message); err == nil {
+				if msgData, err := json.Marshal(p.Message); err == nil {
 					msg = string(msgData)
 				}
 			}
 		}
-		logrus.Infof("Progress(%s) : percent = %d%%, status = %s, message = %s", wsp.Code, wsp.Percent, wsp.Status, msg)
+		logrus.Infof("Progress(%s) : percent = %d%%, status = %s, message = %s", p.Code, p.Percent, p.Status, msg)
 	}*/
 }
 
-func (wsp *WsProgress) AutoProgress(stepValue int, duration time.Duration, maxValue int, message ...interface{}) {
+func (p *Progress) AutoProgress(stepValue int, duration time.Duration, maxValue int, message ...interface{}) {
 	if len(message) > 0 {
-		wsp.Message = message[0]
-		wsp.SendMsg()
+		p.Message = message[0]
+		p.SendMsg()
 	}
 
-	if wsp.auto != nil {
-		wsp.auto.Stop()
-		wsp.auto = nil
+	if p.auto != nil {
+		p.auto.Stop()
+		p.auto = nil
 	}
 
-	wsp.auto = newAutoProgress(wsp, stepValue, duration, maxValue)
-	wsp.auto.Start()
+	p.auto = newAutoProgress(p, stepValue, duration, maxValue)
+	p.auto.Start()
 }
 
-func (wsp *WsProgress) Step(stepValue int, message ...interface{}) {
-	wsp.Set(wsp.Percent+stepValue, ProgressActive, message...)
+func (p *Progress) Step(stepValue int, message ...interface{}) {
+	p.Set(p.Percent+stepValue, ProgressActive, message...)
 }
 
-func (wsp *WsProgress) NewSubProgress(proportion int) *SubProgress {
-	wsp.mux.Lock()
-	defer wsp.mux.Unlock()
-	sp := &SubProgress{superior: wsp, Proportion: proportion}
-	if wsp.sub == nil {
-		wsp.sub = make([]*SubProgress, 0)
+func (p *Progress) NewSubProgress(proportion int) *SubProgress {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	sp := &SubProgress{superior: p, Proportion: proportion}
+	if p.sub == nil {
+		p.sub = make([]*SubProgress, 0)
 	}
-	wsp.sub = append(wsp.sub, sp)
+	p.sub = append(p.sub, sp)
 	return sp
 }
 
 // nolint[:gocyclo,dupl]
-func (wsp *WsProgress) ProgressChanged(subProgress *SubProgress) {
-	wsp.mux.Lock()
-	defer wsp.mux.Unlock()
-	if wsp.sub != nil && len(wsp.sub) > 0 {
+func (p *Progress) ProgressChanged(subProgress *SubProgress) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	if p.sub != nil && len(p.sub) > 0 {
 		subValue := int(0)
 		index := -1
-		for i, sp := range wsp.sub {
+		for i, sp := range p.sub {
 			if sp == subProgress && sp.IsDone() {
 				index = i
-				wsp.Percent += sp.Proportion
+				p.Percent += sp.Proportion
 			} else {
 				value := 0
 				if sp.IsDone() {
@@ -546,24 +540,24 @@ func (wsp *WsProgress) ProgressChanged(subProgress *SubProgress) {
 		if index >= 0 {
 			newSub := make([]*SubProgress, 0)
 			if index > 0 {
-				newSub = append(newSub, wsp.sub[:index]...)
+				newSub = append(newSub, p.sub[:index]...)
 			}
-			if index < len(wsp.sub)-1 {
-				newSub = append(newSub, wsp.sub[index+1:]...)
+			if index < len(p.sub)-1 {
+				newSub = append(newSub, p.sub[index+1:]...)
 			}
-			wsp.sub = newSub
+			p.sub = newSub
 		}
 
-		percent := wsp.Percent + subValue
-		msg := wsp.Message
+		percent := p.Percent + subValue
+		msg := p.Message
 		if subProgress.Message != nil {
 			msg = subProgress.Message
 		}
 
 		if subProgress.Propagation && subProgress.Status == ProgressException {
-			wsp.Status = subProgress.Status
+			p.Status = subProgress.Status
 		}
-		wsp.Send(percent, wsp.Status, msg)
+		p.Send(percent, p.Status, msg)
 	}
 
 }

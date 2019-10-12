@@ -1,4 +1,4 @@
-package fxgo
+package gosrvx
 
 import (
 	"fmt"
