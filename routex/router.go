@@ -6,48 +6,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type RouteConfig struct {
-	restricted bool
-	audit      bool
-	props      map[string]interface{}
-}
-
-func (rc *RouteConfig) SetProps(key string, prop interface{}) {
-	if rc.props == nil {
-		rc.props = make(map[string]interface{})
-	}
-	rc.props[key] = prop
-}
-
-func (rc *RouteConfig) GetProps(key string) interface{} {
-	if rc.props == nil {
-		return nil
-	}
-	return rc.props[key]
-}
-
-func NewConfig() RouteConfig {
-	return RouteConfig{audit: true}
-}
-
-func (rc RouteConfig) GetCopy(includeProp ...bool) RouteConfig {
-	copyRc := RouteConfig{
-		restricted: rc.restricted,
-		audit:      rc.audit,
-	}
-	if len(includeProp) > 0 && includeProp[0] {
-		copyRc.props = rc.props
-	}
-	return copyRc
-}
-func (rc RouteConfig) IsRestricted() bool {
-	return rc.restricted
-}
-
-func (rc RouteConfig) IsAuditEnable() bool {
-	return rc.audit
-}
-
 type Router struct {
 	myRouter    *mux.Router
 	routeConfig map[*mux.Route]*RouteConfig
@@ -93,6 +51,26 @@ func (r *Route) getConfig() *RouteConfig {
 	return r.routeConfig[r.myRoute]
 }
 
+type PropSetter func(props *RouteProps)
+
+func (r *Route) ApplyProps(props ...PropSetter) {
+	config := r.getConfig()
+	if config.props == nil {
+		config.props = make(map[string]interface{})
+	}
+	rp := RouteProps{config.props}
+	for _, prop := range props {
+		prop(&rp)
+	}
+}
+
+func Props(key string, val interface{}) PropSetter {
+	return func(props *RouteProps) {
+		_ = props.Set(key, val)
+	}
+}
+
+// Deprecated: use ApplyProps and routex.Props(key, val) instead
 func (r *Route) SetProps(key string, prop interface{}) *Route {
 	if config := r.getConfig(); config != nil {
 		config.SetProps(key, prop)
