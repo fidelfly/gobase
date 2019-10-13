@@ -3,7 +3,7 @@ package gosrvx
 import (
 	"gopkg.in/oauth2.v3"
 
-	"github.com/fidelfly/fxgo/authx"
+	"github.com/fidelfly/gox/authx"
 )
 
 //export

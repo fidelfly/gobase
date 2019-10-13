@@ -1,4 +1,4 @@
-package fxgo
+package gox
 
 import (
 	"fmt"

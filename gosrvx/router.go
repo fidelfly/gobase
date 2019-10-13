@@ -9,17 +9,17 @@ import (
 
 	"gopkg.in/oauth2.v3"
 
-	"github.com/fidelfly/fxgo"
-	"github.com/fidelfly/fxgo/pkg/randx"
-	"github.com/fidelfly/fxgo/routex"
+	"github.com/fidelfly/gox"
+	"github.com/fidelfly/gox/pkg/randx"
+	"github.com/fidelfly/gox/routex"
 
 	"github.com/gorilla/mux"
 
-	"github.com/fidelfly/fxgo/errorx"
-	"github.com/fidelfly/fxgo/httprxr"
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/errorx"
+	"github.com/fidelfly/gox/httprxr"
+	"github.com/fidelfly/gox/logx"
 
-	"github.com/fidelfly/fxgo/authx"
+	"github.com/fidelfly/gox/authx"
 )
 
 const (
@@ -122,7 +122,7 @@ func (t *TokenIssuer) AuthorizeDisposeHandlerFunc(w http.ResponseWriter, r *http
 }
 
 func (rr *RootRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	defer fxgo.CapturePanicAndRecover(fmt.Sprintf("Panic found and recovered during %s:%s", req.Method, req.URL.Path))
+	defer gox.CapturePanicAndRecover(fmt.Sprintf("Panic found and recovered during %s:%s", req.Method, req.URL.Path))
 	rr.Router.ServeHTTP(w, req)
 }
 
@@ -130,7 +130,7 @@ func (rr *RootRouter) EnableAudit(loggers ...logx.StdLog) {
 	if len(loggers) > 0 {
 		rr.auditLogger = loggers[0]
 	} else {
-		rr.auditLogger = fxgo.ConsoleOutput{}
+		rr.auditLogger = gox.ConsoleOutput{}
 	}
 	rr.Router.Use(rr.AuditMiddleware)
 }

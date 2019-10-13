@@ -1,7 +1,7 @@
-package fxgo
+package gox
 
 import (
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 )
 
 //export

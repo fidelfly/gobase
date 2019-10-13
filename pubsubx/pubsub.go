@@ -3,7 +3,7 @@ package pubsubx
 import (
 	"github.com/cskr/pubsub"
 
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 )
 
 type PubXSub struct {

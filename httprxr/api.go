@@ -3,7 +3,7 @@ package httprxr
 import (
 	"net/http"
 
-	"github.com/fidelfly/fxgo/errorx"
+	"github.com/fidelfly/gox/errorx"
 )
 
 //export

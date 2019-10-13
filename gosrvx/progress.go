@@ -3,11 +3,11 @@ package gosrvx
 import (
 	"net/http"
 
-	"github.com/fidelfly/fxgo/cachex/mcache"
-	"github.com/fidelfly/fxgo/httprxr"
-	"github.com/fidelfly/fxgo/logx"
-	"github.com/fidelfly/fxgo/pkg/randx"
-	"github.com/fidelfly/fxgo/progx"
+	"github.com/fidelfly/gox/cachex/mcache"
+	"github.com/fidelfly/gox/httprxr"
+	"github.com/fidelfly/gox/logx"
+	"github.com/fidelfly/gox/pkg/randx"
+	"github.com/fidelfly/gox/progx"
 
 	"github.com/sirupsen/logrus"
 )

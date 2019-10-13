@@ -4,7 +4,7 @@ import (
 	"gopkg.in/oauth2.v3"
 	"gopkg.in/oauth2.v3/store"
 
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 )
 
 func NewMemoryTokenStore() oauth2.TokenStore {

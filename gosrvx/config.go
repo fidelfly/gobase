@@ -3,7 +3,7 @@ package gosrvx
 import (
 	"flag"
 
-	"github.com/fidelfly/fxgo/confx"
+	"github.com/fidelfly/gox/confx"
 )
 
 const defConfigFile = "config.toml"

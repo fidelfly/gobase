@@ -6,9 +6,9 @@ import (
 
 	"gopkg.in/oauth2.v3/errors"
 
-	"github.com/fidelfly/fxgo/errorx"
+	"github.com/fidelfly/gox/errorx"
 
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 
 	"gopkg.in/oauth2.v3/models"
 

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 )
 
 const (

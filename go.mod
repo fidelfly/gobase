@@ -1,4 +1,4 @@
-module github.com/fidelfly/fxgo
+module github.com/fidelfly/gox
 
 go 1.12
 

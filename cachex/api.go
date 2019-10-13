@@ -1,6 +1,6 @@
 package cachex
 
-import "github.com/fidelfly/fxgo/cachex/bcache"
+import "github.com/fidelfly/gox/cachex/bcache"
 
 //export
 func NewBuntCache(filename string) *bcache.BuntCache {

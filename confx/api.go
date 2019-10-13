@@ -3,7 +3,7 @@ package confx
 import (
 	"os"
 
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 
 	"github.com/BurntSushi/toml"
 )

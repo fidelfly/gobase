@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 
 	"github.com/gorilla/mux"
 )

@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/fidelfly/fxgo/logx"
+	"github.com/fidelfly/gox/logx"
 )
 
 func init() {
