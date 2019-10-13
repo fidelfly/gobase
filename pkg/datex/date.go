@@ -5,25 +5,25 @@ import (
 )
 
 const (
-	DateFormat = "2006-01-02"
-	TimeFormat = "2006-01-02 15:04:05"
+	dateFormat = "2006-01-02"
+	//TimeFormat = "2006-01-02 15:04:05"
 )
 
 type Date time.Time
 
 func (d *Date) UnmarshalJSON(data []byte) (err error) {
-	now, err := time.ParseInLocation(`"`+DateFormat+`"`, string(data), time.Local)
+	now, err := time.ParseInLocation(`"`+dateFormat+`"`, string(data), time.Local)
 	*d = Date(now)
 	return
 }
 
-func (t Date) MarshalJSON() ([]byte, error) {
-	if time.Time(t).IsZero() {
+func (d Date) MarshalJSON() ([]byte, error) {
+	if time.Time(d).IsZero() {
 		return []byte("\"\""), nil
 	}
-	b := make([]byte, 0, len(DateFormat)+2)
+	b := make([]byte, 0, len(dateFormat)+2)
 	b = append(b, '"')
-	b = time.Time(t).AppendFormat(b, DateFormat)
+	b = time.Time(d).AppendFormat(b, dateFormat)
 	b = append(b, '"')
 	return b, nil
 }

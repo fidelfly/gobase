@@ -226,7 +226,7 @@ func (pd *ProgressDispatcher) ProgressChanged(subProgress *SubProgress) {
 	pd.mux.Lock()
 	defer pd.mux.Unlock()
 	if pd.sub != nil && len(pd.sub) > 0 {
-		subValue := int(0)
+		subValue := 0
 		index := -1
 		for i, sp := range pd.sub {
 			if sp == subProgress && sp.IsDone() {
@@ -520,7 +520,7 @@ func (p *Progress) ProgressChanged(subProgress *SubProgress) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 	if p.sub != nil && len(p.sub) > 0 {
-		subValue := int(0)
+		subValue := 0
 		index := -1
 		for i, sp := range p.sub {
 			if sp == subProgress && sp.IsDone() {

@@ -13,7 +13,7 @@ func parseTag(tag string) (string, tagOptions) {
 	if idx := strings.Index(tag, ","); idx != -1 {
 		return tag[:idx], tagOptions(tag[idx+1:])
 	}
-	return tag, tagOptions("")
+	return tag, ""
 }
 
 // Contains reports whether a comma-separated list of options

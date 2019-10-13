@@ -226,7 +226,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (r *Router) Use(mwf ...func(http.Handler) http.Handler) {
 	middlewares := make([]mux.MiddlewareFunc, len(mwf))
 	for i := 0; i < len(mwf); i++ {
-		middlewares[i] = mux.MiddlewareFunc(mwf[i])
+		middlewares[i] = mwf[i]
 	}
 	r.myRouter.Use(middlewares...)
 }
