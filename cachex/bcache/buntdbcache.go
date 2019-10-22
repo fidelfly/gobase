@@ -126,9 +126,16 @@ func (bc *BuntCache) Iterate(iterator func(key, val string) bool) {
 	})
 }
 
-func (bc *BuntCache) CreateJSONIndex(name string, pattern string, path string) {
+func (bc *BuntCache) CreateJSONIndex(name string, pattern string, paths ...string) {
+	if len(paths) == 0 {
+		return
+	}
 	_ = bc.db.Update(func(tx *buntdb.Tx) error {
-		return tx.CreateIndex(name, pattern, buntdb.IndexJSON(path))
+		indexes := make([]func(string, string) bool, len(paths))
+		for i, path := range paths {
+			indexes[i] = buntdb.IndexJSON(path)
+		}
+		return tx.CreateIndex(name, pattern, indexes...)
 	})
 
 	return
