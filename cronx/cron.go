@@ -2,13 +2,17 @@ package cronx
 
 import (
 	"context"
+	"time"
 
 	"github.com/robfig/cron/v3"
+
+	"github.com/fidelfly/gox/pkg/randx"
 )
 
 type Cronx struct {
 	inCron      *cron.Cron
 	middlewares []JobMiddleware
+	keyMap      map[string]int
 }
 
 type Job interface {
@@ -34,6 +38,13 @@ func (e Entry) Meta() *Metadata {
 	}
 	return NewMetadata()
 }
+func (e Entry) Key() string {
+	md := e.Meta()
+	if md != nil {
+		return md.GetJobKey()
+	}
+	return ""
+}
 
 type Metadata struct {
 	meta map[string]string
@@ -44,6 +55,11 @@ func (md *Metadata) Get(key string) (string, bool) {
 		return v, true
 	}
 	return "", false
+}
+
+func (md *Metadata) GetJobKey() string {
+	key, _ := md.Get(metaJobKey)
+	return key
 }
 
 func NewMetadata(datas ...map[string]string) *Metadata {
@@ -59,7 +75,7 @@ func NewMetadata(datas ...map[string]string) *Metadata {
 }
 
 func New(opts ...Option) *Cronx {
-	cx := &Cronx{}
+	cx := &Cronx{keyMap: make(map[string]int)}
 	for _, opt := range opts {
 		opt(cx)
 	}
@@ -74,16 +90,53 @@ func (cx *Cronx) AddFunc(spec string, cmd func(context.Context), mds ...map[stri
 	return cx.AddJob(spec, FuncJob(cmd), mds...)
 }
 
+const uuidSeed = "job.uuid"
+
 func (cx *Cronx) AddJob(spec string, job Job, mds ...map[string]string) (int, error) {
 	if len(cx.middlewares) > 0 {
 		job = AttachMiddleware(job, cx.middlewares...)
 	}
-	id, err := cx.inCron.AddJob(spec, newCronJob(job, mds...))
+	jobKey := randx.GenUUID(uuidSeed)
+	id, err := cx.inCron.AddJob(spec, newCronJob(jobKey, job, mds...))
+	cx.keyMap[jobKey] = int(id)
 	return int(id), err
+}
+
+func (cx *Cronx) removeTimerJob(job Job) Job {
+	return FuncJob(func(ctx context.Context) {
+		md := GetMetadata(ctx)
+		job.Run(ctx)
+		if jobKey := md.GetJobKey(); len(jobKey) > 0 {
+			if id, ok := cx.keyMap[jobKey]; ok {
+				go cx.Remove(id)
+			}
+		}
+	})
+}
+
+func (cx *Cronx) AddTimerFunc(t time.Time, cmd func(context.Context), mds ...map[string]string) int {
+	return cx.AddTimerJob(t, FuncJob(cmd), mds...)
+}
+
+func (cx *Cronx) AddTimerJob(t time.Time, job Job, mds ...map[string]string) int {
+	if len(cx.middlewares) > 0 {
+		job = cx.removeTimerJob(AttachMiddleware(job, cx.middlewares...))
+	}
+	jobKey := randx.GenUUID(uuidSeed)
+	schedule := NewTimerSchedule(t)
+	id := cx.inCron.Schedule(schedule, newCronJob(jobKey, job, mds...))
+	cx.keyMap[jobKey] = int(id)
+	return int(id)
 }
 
 func (cx *Cronx) Remove(id int) {
 	cx.inCron.Remove(cron.EntryID(id))
+	for k, v := range cx.keyMap {
+		if v == id {
+			delete(cx.keyMap, k)
+			return
+		}
+	}
 }
 
 func (cx *Cronx) Start() {
@@ -115,6 +168,7 @@ func AttachMiddleware(job Job, ms ...JobMiddleware) Job {
 }
 
 type cronJob struct {
+	key string
 	job Job
 	md  *Metadata
 }
@@ -126,10 +180,15 @@ func (cj *cronJob) Run() {
 	cj.job.Run(ctx)
 }
 
-func newCronJob(job Job, mds ...map[string]string) cron.Job {
+const metaJobKey = "job.meta.key"
+
+func newCronJob(jobKey string, job Job, mds ...map[string]string) cron.Job {
+	jobMD := NewMetadata(mds...)
+	jobMD.meta[metaJobKey] = jobKey
 	return &cronJob{
+		key: jobKey,
 		job: job,
-		md:  NewMetadata(mds...),
+		md:  jobMD,
 	}
 }
 
@@ -140,4 +199,19 @@ func GetMetadata(ctx context.Context) *Metadata {
 		}
 	}
 	return nil
+}
+
+type TimerSchedule struct {
+	t time.Time
+}
+
+func (ts TimerSchedule) Next(now time.Time) time.Time {
+	if ts.t.Before(now) {
+		return time.Time{}
+	}
+	return ts.t
+}
+
+func NewTimerSchedule(t time.Time) *TimerSchedule {
+	return &TimerSchedule{t: t}
 }

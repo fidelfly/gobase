@@ -4,10 +4,15 @@ import (
 	"time"
 )
 
-const (
-	dateFormat = "2006-01-02"
-	//TimeFormat = "2006-01-02 15:04:05"
-)
+var dateFormat = "2006-01-02"
+
+func SetFormat(layout string) {
+	dateFormat = layout
+}
+
+func GetFormat() string {
+	return dateFormat
+}
 
 type Date time.Time
 
