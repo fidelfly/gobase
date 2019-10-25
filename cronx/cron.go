@@ -41,7 +41,7 @@ func (e Entry) Meta() *Metadata {
 func (e Entry) Key() string {
 	md := e.Meta()
 	if md != nil {
-		return md.GetJobKey()
+		return GetJobKey(md)
 	}
 	return ""
 }
@@ -57,10 +57,10 @@ func (md *Metadata) Get(key string) (string, bool) {
 	return "", false
 }
 
-func (md *Metadata) GetJobKey() string {
-	key, _ := md.Get(metaJobKey)
-	return key
-}
+//func (md *Metadata) GetJobKey() string {
+//	key, _ := md.Get(metaJobKey)
+//	return key
+//}
 
 func NewMetadata(datas ...map[string]string) *Metadata {
 	md := make(map[string]string)
@@ -106,7 +106,7 @@ func (cx *Cronx) removeTimerJob(job Job) Job {
 	return FuncJob(func(ctx context.Context) {
 		md := GetMetadata(ctx)
 		job.Run(ctx)
-		if jobKey := md.GetJobKey(); len(jobKey) > 0 {
+		if jobKey := GetJobKey(md); len(jobKey) > 0 {
 			if id, ok := cx.keyMap[jobKey]; ok {
 				go cx.Remove(id)
 			}
@@ -168,7 +168,6 @@ func AttachMiddleware(job Job, ms ...JobMiddleware) Job {
 }
 
 type cronJob struct {
-	key string
 	job Job
 	md  *Metadata
 }
@@ -186,7 +185,6 @@ func newCronJob(jobKey string, job Job, mds ...map[string]string) cron.Job {
 	jobMD := NewMetadata(mds...)
 	jobMD.meta[metaJobKey] = jobKey
 	return &cronJob{
-		key: jobKey,
 		job: job,
 		md:  jobMD,
 	}
@@ -199,6 +197,11 @@ func GetMetadata(ctx context.Context) *Metadata {
 		}
 	}
 	return nil
+}
+
+func GetJobKey(md *Metadata) string {
+	key, _ := md.Get(metaJobKey)
+	return key
 }
 
 type TimerSchedule struct {
