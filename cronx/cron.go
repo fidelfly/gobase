@@ -16,13 +16,13 @@ type Cronx struct {
 }
 
 type Job interface {
-	Run(ctx context.Context)
+	Run(ctx context.Context) error
 }
 
-type FuncJob func(ctx context.Context)
+type FuncJob func(ctx context.Context) error
 
-func (fj FuncJob) Run(ctx context.Context) {
-	fj(ctx)
+func (fj FuncJob) Run(ctx context.Context) error {
+	return fj(ctx)
 }
 
 type JobMiddleware func(Job) Job
@@ -86,7 +86,7 @@ func New(opts ...Option) *Cronx {
 	return cx
 }
 
-func (cx *Cronx) AddFunc(spec string, cmd func(context.Context), mds ...map[string]string) (int, error) {
+func (cx *Cronx) AddFunc(spec string, cmd func(context.Context) error, mds ...map[string]string) (int, error) {
 	return cx.AddJob(spec, FuncJob(cmd), mds...)
 }
 
@@ -102,19 +102,29 @@ func (cx *Cronx) AddJob(spec string, job Job, mds ...map[string]string) (int, er
 	return int(id), err
 }
 
+func (cx *Cronx) RunJob(job Job, mds ...map[string]string) error {
+	if len(cx.middlewares) > 0 {
+		job = AttachMiddleware(job, cx.middlewares...)
+	}
+	jobKey := randx.GenUUID(uuidSeed)
+	runJob := newCronJob(jobKey, job, mds...)
+	return runJob.execute()
+}
+
 func (cx *Cronx) removeTimerJob(job Job) Job {
-	return FuncJob(func(ctx context.Context) {
+	return FuncJob(func(ctx context.Context) (err error) {
 		md := GetMetadata(ctx)
-		job.Run(ctx)
+		err = job.Run(ctx)
 		if jobKey := GetJobKey(md); len(jobKey) > 0 {
 			if id, ok := cx.keyMap[jobKey]; ok {
 				go cx.Remove(id)
 			}
 		}
+		return
 	})
 }
 
-func (cx *Cronx) AddTimerFunc(t time.Time, cmd func(context.Context), mds ...map[string]string) int {
+func (cx *Cronx) AddTimerFunc(t time.Time, cmd func(context.Context) error, mds ...map[string]string) int {
 	return cx.AddTimerJob(t, FuncJob(cmd), mds...)
 }
 
@@ -175,13 +185,17 @@ type cronJob struct {
 type ctxMetadataKey struct{}
 
 func (cj *cronJob) Run() {
+	_ = cj.execute()
+}
+
+func (cj *cronJob) execute() error {
 	ctx := context.WithValue(context.Background(), ctxMetadataKey{}, cj.md)
-	cj.job.Run(ctx)
+	return cj.job.Run(ctx)
 }
 
 const metaJobKey = "job.meta.key"
 
-func newCronJob(jobKey string, job Job, mds ...map[string]string) cron.Job {
+func newCronJob(jobKey string, job Job, mds ...map[string]string) *cronJob {
 	jobMD := NewMetadata(mds...)
 	jobMD.meta[metaJobKey] = jobKey
 	return &cronJob{

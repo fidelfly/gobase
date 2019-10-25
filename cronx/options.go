@@ -12,3 +12,9 @@ func WithCronOption(opts ...cron.Option) Option {
 		cronx.inCron = cron.New(opts...)
 	}
 }
+
+func WithMiddleware(m ...JobMiddleware) Option {
+	return func(cronx *Cronx) {
+		cronx.middlewares = append(cronx.middlewares, m...)
+	}
+}
