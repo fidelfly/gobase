@@ -1,4 +1,4 @@
-package strh
+package strx
 
 import (
 	"bytes"
