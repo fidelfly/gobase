@@ -2,7 +2,7 @@ package reflectx
 
 import "reflect"
 
-func CopyFields(target interface{}, source interface{}) []string {
+func CopyAllFields(target interface{}, source interface{}) []string {
 	tv := reflect.Indirect(reflect.ValueOf(target))
 	if tv.Kind() != reflect.Struct {
 		return nil
@@ -25,6 +25,39 @@ func CopyFields(target interface{}, source interface{}) []string {
 				if tfv.CanSet() {
 					tfv.Set(sv.Field(i))
 					copyFields = append(copyFields, fn)
+				}
+			}
+		}
+	}
+	return copyFields
+}
+
+func CopyFields(target interface{}, source interface{}, fields ...string) []string {
+	if len(fields) == 0 {
+		return CopyAllFields(target, source)
+	}
+	tv := reflect.Indirect(reflect.ValueOf(target))
+	if tv.Kind() != reflect.Struct {
+		return nil
+	}
+	tt := tv.Type()
+
+	sv := reflect.Indirect(reflect.ValueOf(source))
+	if sv.Kind() != reflect.Struct {
+		return nil
+	}
+	st := sv.Type()
+
+	var copyFields []string
+	for _, field := range fields {
+		if sf, find := st.FieldByName(field); find {
+			if tf, find := tt.FieldByName(field); find {
+				if tf.Type == sf.Type {
+					tfv := tv.FieldByName(field)
+					if tfv.CanSet() {
+						tfv.Set(sv.FieldByName(field))
+						copyFields = append(copyFields, field)
+					}
 				}
 			}
 		}
