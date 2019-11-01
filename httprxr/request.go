@@ -19,6 +19,11 @@ const (
 
 type RequestVar map[string][]string
 
+func (rv RequestVar) Exist(key string) bool {
+	_, ok := rv[key]
+	return ok
+}
+
 func (rv RequestVar) set(key string, vals ...string) {
 	rv[key] = vals
 }
