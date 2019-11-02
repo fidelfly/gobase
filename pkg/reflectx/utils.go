@@ -114,3 +114,10 @@ func GetField(target interface{}, field string) interface{} {
 	}
 	return nil
 }
+
+func IsValueNil(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	return reflect.ValueOf(v).IsNil()
+}

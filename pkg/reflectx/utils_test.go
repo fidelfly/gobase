@@ -127,3 +127,29 @@ func TestSetField(t *testing.T) {
 	}
 
 }
+
+func TestIsValueNil(t *testing.T) {
+	type args struct {
+		v interface{}
+	}
+	var v0 *int64
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"Test1",
+			args{v0},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("Direct compare value == nil : %t", tt.args.v == nil)
+			if got := IsValueNil(tt.args.v); got != tt.want {
+				t.Errorf("IsValueNil() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
