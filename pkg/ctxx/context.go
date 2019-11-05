@@ -24,3 +24,17 @@ func GetMetadata(ctx context.Context) metax.MetaData {
 	}
 	return nil
 }
+
+func IsCancelled(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
+
+func IsCancellable(ctx context.Context) (<-chan struct{}, bool) {
+	dch := ctx.Done()
+	return dch, dch != nil
+}
