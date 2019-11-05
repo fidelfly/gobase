@@ -119,5 +119,11 @@ func IsValueNil(v interface{}) bool {
 	if v == nil {
 		return true
 	}
-	return reflect.ValueOf(v).IsNil()
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.UnsafePointer, reflect.Interface, reflect.Slice:
+		return rv.IsNil()
+	default:
+		return false
+	}
 }

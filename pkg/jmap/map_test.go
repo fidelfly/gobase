@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestMarshal(t *testing.T) {
@@ -17,10 +18,10 @@ func TestMarshal(t *testing.T) {
 		{"test",
 			args{
 				struct {
-					A string
+					A time.Time
 					B string
 				}{
-					"testing A",
+					time.Now(),
 					"testing B",
 				},
 			},
@@ -91,7 +92,9 @@ type TestS struct {
 	TestSB string
 }
 
-func jsonStr(v interface{}) string {
+func jsonStr(v interface{}) map[string]interface{} {
+	m := make(map[string]interface{})
 	data, _ := json.Marshal(v)
-	return string(data)
+	_ = json.Unmarshal(data, &m)
+	return m
 }

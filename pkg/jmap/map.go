@@ -2,6 +2,7 @@ package jmap
 
 import (
 	"encoding"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -264,13 +265,52 @@ func typeConverter(t reflect.Type) jmConverter {
 		return fi.(jmConverter)
 	}
 
-	f = newTypeConverter(t)
+	f = newTypeConverter(t, true)
 	wg.Done()
 	converterCache.Store(t, f)
 	return f
 }
 
-func newTypeConverter(t reflect.Type) jmConverter {
+var (
+	marshalerType     = reflect.TypeOf((*json.Marshaler)(nil)).Elem()
+	textMarshalerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
+)
+
+func newCondAddrEncoder(canAddrEnc, elseEnc jmConverter) jmConverter {
+	enc := condAddrConverter{canAddrEnc: canAddrEnc, elseEnc: elseEnc}
+	return enc.convert
+}
+
+type condAddrConverter struct {
+	canAddrEnc, elseEnc jmConverter
+}
+
+func (ce condAddrConverter) convert(v reflect.Value, opts convertOpts) interface{} {
+	if v.CanAddr() {
+		return ce.canAddrEnc(v, opts)
+	} else {
+		return ce.elseEnc(v, opts)
+	}
+}
+
+func newTypeConverter(t reflect.Type, allowAddr bool) jmConverter {
+	if t.Implements(marshalerType) {
+		return skipConverter
+	}
+	if t.Kind() != reflect.Ptr && allowAddr {
+		if reflect.PtrTo(t).Implements(marshalerType) {
+			return newCondAddrEncoder(skipConverter, newTypeConverter(t, false))
+		}
+	}
+
+	if t.Implements(textMarshalerType) {
+		return skipConverter
+	}
+	if t.Kind() != reflect.Ptr {
+		if reflect.PtrTo(t).Implements(textMarshalerType) && allowAddr {
+			return newCondAddrEncoder(skipConverter, newTypeConverter(t, false))
+		}
+	}
 	switch t.Kind() {
 	case reflect.Interface:
 		return interfaceConverter

@@ -128,20 +128,66 @@ func TestSetField(t *testing.T) {
 
 }
 
+type MyType []string
+
 func TestIsValueNil(t *testing.T) {
 	type args struct {
 		v interface{}
 	}
 	var v0 *int64
+	var f0 func()
+	var i0 int64
+	var s0 TestStruct
+	var mt MyType
 	tests := []struct {
 		name string
 		args args
 		want bool
 	}{
 		{
-			"Test1",
+			"Nil *int64",
 			args{v0},
 			true,
+		},
+		{
+			name: "Struct",
+			args: args{TestStruct{1, 2, 3}},
+			want: false,
+		},
+		{
+			name: "UnInit Struct",
+			args: args{s0},
+			want: false,
+		},
+		{
+			name: "Nil Struct Pointer",
+			args: args{returnNilStruct()},
+			want: true,
+		},
+		{
+			name: "string",
+			args: args{"String"},
+			want: false,
+		},
+		{
+			name: "Nil Function",
+			args: args{f0},
+			want: true,
+		},
+		{
+			name: "Function",
+			args: args{func() {}},
+			want: false,
+		},
+		{
+			name: "int",
+			args: args{i0},
+			want: false,
+		},
+		{
+			name: "Alias Type",
+			args: args{mt},
+			want: true,
 		},
 	}
 	for _, tt := range tests {
@@ -152,4 +198,10 @@ func TestIsValueNil(t *testing.T) {
 			}
 		})
 	}
+}
+
+func returnNilStruct() interface{} {
+	var a *TestStruct
+
+	return a
 }
