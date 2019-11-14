@@ -22,11 +22,37 @@ import (
 	"github.com/fidelfly/gox/authx"
 )
 
+type tokenKey struct {
+}
+type userKey struct {
+}
+
+func GetUserKey(r *http.Request) string {
+	if v := r.Context().Value(userKey{}); v != nil {
+		if key, ok := v.(string); ok {
+			return key
+		}
+	}
+	return ""
+}
+
+type requestIdKey struct {
+}
+
+func GetRequestId(r *http.Request) string {
+	if v := r.Context().Value(requestIdKey{}); v != nil {
+		if key, ok := v.(string); ok {
+			return key
+		}
+	}
+	panic("there is no request id if audit for router is not enabled")
+}
+
 const (
 	//contextKey
-	ContextUserKey   = "context.user.id"
-	ContextTokenKey  = "context.token"
-	ContextRequestId = "context.request.id"
+	//ContextUserKey   = "context.user.id"
+	//ContextTokenKey  = "context.token"
+	//ContextRequestId = "context.request.id"
 
 	//routerName
 	defaultRouterKey = "router.default"
@@ -86,7 +112,7 @@ func (t *TokenIssuer) AuthFilter(w http.ResponseWriter, r *http.Request, next ht
 		}
 		return
 	} else if ti != nil {
-		r = httprxr.ContextSet(r, ContextUserKey, ti.GetUserID(), ContextTokenKey, ti)
+		r = httprxr.ContextSet(r, userKey{}, ti.GetUserID(), tokenKey{}, ti)
 	}
 	next.ServeHTTP(w, r)
 
@@ -95,7 +121,7 @@ func (t *TokenIssuer) AuthFilter(w http.ResponseWriter, r *http.Request, next ht
 func (t *TokenIssuer) AuthorizeDisposeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
-		obj := httprxr.ContextGet(r, ContextTokenKey)
+		obj := httprxr.ContextGet(r, userKey{})
 		if obj != nil {
 			if ti, ok := obj.(oauth2.TokenInfo); ok {
 				logx.CaptureError(t.RemoveAccessToken(ti.GetAccess()))
@@ -106,7 +132,7 @@ func (t *TokenIssuer) AuthorizeDisposeMiddleware(next http.Handler) http.Handler
 }
 
 func (t *TokenIssuer) AuthorizeDisposeHandlerFunc(w http.ResponseWriter, r *http.Request) {
-	obj := httprxr.ContextGet(r, ContextTokenKey)
+	obj := httprxr.ContextGet(r, tokenKey{})
 	if obj != nil {
 		if ti, ok := obj.(oauth2.TokenInfo); ok {
 			logx.CaptureError(t.RemoveAccessToken(ti.GetAccess()))
@@ -218,7 +244,7 @@ func (rr *RootRouter) AuditMiddleware(next http.Handler) http.Handler {
 		auditStart := time.Now()
 		w = httprxr.MakeStatusResponse(w)
 		reqId := randx.GenUUID(r.URL.Path)
-		r = httprxr.ContextSet(r, ContextRequestId, reqId)
+		r = httprxr.ContextSet(r, requestIdKey{}, reqId)
 		next.ServeHTTP(w, r)
 
 		auditEnd := time.Now()
@@ -228,7 +254,7 @@ func (rr *RootRouter) AuditMiddleware(next http.Handler) http.Handler {
 				statusCode = sr.GetStatusCode()
 			}
 			duration := auditEnd.Sub(auditStart) / time.Millisecond
-			user := httprxr.ContextGet(r, ContextUserKey)
+			user := httprxr.ContextGet(r, userKey{})
 			if user != nil {
 				rr.auditLogger.Infof("[Router Audit] %s %s [Duration=%dms, User=%s, Status=%s, RequestId=%s]",
 					r.Method, r.URL.Path, duration, user, http.StatusText(statusCode), reqId)
