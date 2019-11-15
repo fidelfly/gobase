@@ -2,6 +2,8 @@ package metax
 
 import "errors"
 
+type MetaOption func(md MetaData) MetaData
+
 type MetaData interface {
 	Get(interface{}) (interface{}, bool)
 	Set(k, v interface{}) error
@@ -18,6 +20,8 @@ func (mm MetaMap) Set(k, v interface{}) error {
 	mm[k] = v
 	return nil
 }
+
+var EmptyMD = newMD(false, false)
 
 type MD struct {
 	overridable bool
@@ -42,6 +46,30 @@ func (md MD) Set(k, v interface{}) error {
 	}
 	md.data[k] = v
 	return nil
+}
+
+func ApplyOption(md MetaData, options ...MetaOption) MetaData {
+	if md == nil {
+		md = newMD(true, true)
+	}
+	if len(options) > 0 {
+		for _, opt := range options {
+			md = opt(md)
+		}
+	}
+	return md
+}
+
+func FillMd(md MetaData, data ...map[interface{}]interface{}) {
+	if len(data) > 0 {
+		for _, d := range data {
+			if len(d) > 0 {
+				for k, v := range d {
+					md.Set(k, v)
+				}
+			}
+		}
+	}
 }
 
 func newMD(appendable, overridable bool, data ...map[interface{}]interface{}) *MD {

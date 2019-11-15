@@ -56,7 +56,8 @@ func NewDataset(p string, coder Converter) *Dataset {
 	return &Dataset{p, coder}
 }
 
-var DefaultPortion = &Dataset{"*", &jsonConverter{}}
+var JsonConverter = &jsonConverter{}
+var DefaultPortion = &Dataset{"*", JsonConverter}
 
 type jsonConverter struct {
 }
@@ -118,6 +119,13 @@ func (bc *BuntCache) GetObject(key string, val interface{}) (err error) {
 		err = dp.Decode(data, val)
 	}
 	return
+}
+
+func (bc *BuntCache) Delete(key string) error {
+	return bc.db.Update(func(tx *buntdb.Tx) error {
+		_, err := tx.Delete(key)
+		return err
+	})
 }
 
 func (bc *BuntCache) Iterate(iterator func(key, val string) bool) {

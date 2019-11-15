@@ -9,7 +9,12 @@ import (
 type metaKey struct{}
 
 func WithMetadata(ctx context.Context, data ...map[interface{}]interface{}) context.Context {
-	return context.WithValue(ctx, metaKey{}, metax.NewWrapMD(GetMetadata(ctx), data...))
+	md := GetMetadata(ctx)
+	if md != nil {
+		metax.FillMd(md, data...)
+		return ctx
+	}
+	return context.WithValue(ctx, metaKey{}, metax.NewMD(data...))
 }
 
 func WrapMeta(ctx context.Context, md metax.MetaData) context.Context {
