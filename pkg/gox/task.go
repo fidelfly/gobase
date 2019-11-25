@@ -24,7 +24,7 @@ func (tf TaskFunc) Run() (interface{}, error) {
 
 type TaskCallback func(interface{}, error)
 
-func startTaskProcessor(processCount int, wg sync.WaitGroup, callback TaskCallback) chan Task {
+func startTaskProcessor(processCount int, wg *sync.WaitGroup, callback TaskCallback) chan Task {
 	taskQueue := make(chan Task)
 	for i := 0; i < processCount; i++ {
 		go goTask(taskQueue, wg, callback)
@@ -33,7 +33,7 @@ func startTaskProcessor(processCount int, wg sync.WaitGroup, callback TaskCallba
 	return taskQueue
 }
 
-func goTask(taskQueue chan Task, wg sync.WaitGroup, callback TaskCallback) {
+func goTask(taskQueue chan Task, wg *sync.WaitGroup, callback TaskCallback) {
 	defer func() {
 		wg.Done()
 		if err := recover(); err != nil {
@@ -52,7 +52,7 @@ func goTask(taskQueue chan Task, wg sync.WaitGroup, callback TaskCallback) {
 	}
 }
 
-func runTask(task Task, wg sync.WaitGroup, callback TaskCallback) {
+func runTask(task Task, wg *sync.WaitGroup, callback TaskCallback) {
 	defer func() {
 		wg.Done()
 		if err := recover(); err != nil {
@@ -68,7 +68,7 @@ func runTask(task Task, wg sync.WaitGroup, callback TaskCallback) {
 
 func RunTaskWithCallback(processCount int, callback TaskCallback, tasks ...Task) {
 	var wg sync.WaitGroup
-	taskQueue := startTaskProcessor(processCount, wg, callback)
+	taskQueue := startTaskProcessor(processCount, &wg, callback)
 	for _, t := range tasks {
 		taskQueue <- t
 	}

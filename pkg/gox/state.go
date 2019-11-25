@@ -5,7 +5,7 @@ import "errors"
 type StateSignal chan int
 
 func NewStateSignal() StateSignal {
-	return make(StateSignal, 0)
+	return make(StateSignal)
 }
 
 func (ss StateSignal) SendSignal(state int) {
