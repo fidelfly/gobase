@@ -36,6 +36,8 @@ linters-settings:
       - commentFormatting
       - commentedOutCode
       - paramTypeCombine
+      - unslice
+      - unnamedResult
       - dupImport # https://github.com/go-critic/go-critic/issues/845
 
 linters:
@@ -46,6 +48,7 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - interfacer
+    - scopelint
 
 run:
   skip-dirs:
