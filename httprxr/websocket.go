@@ -170,6 +170,8 @@ func (wsc *WsConnect) sendToReceiver(message interface{}) {
 
 // nolint:gocyclo
 func (wsc *WsConnect) startWriter() {
+	wsTicker := time.NewTicker(30 * time.Second)
+	defer wsTicker.Stop()
 	var message interface{}
 	if wsc.Duration <= 0 {
 		for {
@@ -177,7 +179,7 @@ func (wsc *WsConnect) startWriter() {
 			case message = <-wsc.writerChan:
 				wsc.sendToReceiver(message)
 				break
-			default:
+			case <-wsTicker.C: //check ws connection status for every 30 seconds
 				if wsc.Status != OPENED {
 					return
 				}
@@ -187,22 +189,24 @@ func (wsc *WsConnect) startWriter() {
 		ticker := time.NewTicker(wsc.Duration)
 		defer ticker.Stop()
 		for {
+			/*			select {
+						case message = <-wsc.writerChan:
+							break
+						default:
+							if wsc.Status != OPENED {
+								return
+							}
+						}
+			*/
 			select {
 			case message = <-wsc.writerChan:
-				break
-			default:
-				if wsc.Status != OPENED {
-					return
-				}
-			}
-
-			select {
+				//do nothing
 			case <-ticker.C:
 				if message != nil {
 					wsc.sendToReceiver(message)
 					message = nil
 				}
-			default:
+			case <-wsTicker.C: //check ws connection status for every 30 seconds
 				if wsc.Status != OPENED {
 					return
 				}

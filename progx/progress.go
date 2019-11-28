@@ -412,31 +412,49 @@ func (p *Progress) delaySend(timer *time.Timer) {
 	p.delayed = true
 	go func() {
 		defer timer.Stop()
-		for {
-			select {
-			case <-timer.C:
-				p.senderLock.Lock()
-				if p.delayMessage {
-					if err := p.handler.SendData(p.data); err == nil {
-						timer.Reset(100 * time.Millisecond)
-						p.delayMessage = false
-						p.senderLock.Unlock()
-					} else {
-						p.delayed = false
-						p.delayMessage = false
-						p.senderLock.Unlock()
-						return
-					}
+		for _ = range timer.C {
+			p.senderLock.Lock()
+			if p.delayMessage {
+				if err := p.handler.SendData(p.data); err == nil {
+					timer.Reset(100 * time.Millisecond)
+					p.delayMessage = false
+					p.senderLock.Unlock()
 				} else {
 					p.delayed = false
 					p.delayMessage = false
 					p.senderLock.Unlock()
 					return
 				}
-			default:
-				continue
+			} else {
+				p.delayed = false
+				p.delayMessage = false
+				p.senderLock.Unlock()
+				return
 			}
 		}
+		/*		for {
+				select {
+				case <-timer.C:
+					p.senderLock.Lock()
+					if p.delayMessage {
+						if err := p.handler.SendData(p.data); err == nil {
+							timer.Reset(100 * time.Millisecond)
+							p.delayMessage = false
+							p.senderLock.Unlock()
+						} else {
+							p.delayed = false
+							p.delayMessage = false
+							p.senderLock.Unlock()
+							return
+						}
+					} else {
+						p.delayed = false
+						p.delayMessage = false
+						p.senderLock.Unlock()
+						return
+					}
+				}
+			}*/
 
 	}()
 }
