@@ -81,8 +81,8 @@ var RespMessageType = responseMsgType{
 }
 
 type ResponseMessage struct {
-	Code    string                 `json:"errorCode"`
-	Message string                 `json:"errorMessage"`
+	Code    string                 `json:"error_code"`
+	Message string                 `json:"error_message"`
 	Data    map[string]interface{} `json:"data"`
 	Type    messageType            `json:"type"`
 }
